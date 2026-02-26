@@ -1,0 +1,395 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ──────────────────────────────────────────────────────────────
+    // Helper Functions
+    // ──────────────────────────────────────────────────────────────
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isStudent() {
+      return isAuthenticated() && getUserRole() == 'student';
+    }
+
+    function isSupervisor() {
+      return isAuthenticated() && getUserRole() == 'supervisor';
+    }
+
+    function isCoordinator() {
+      return isAuthenticated() && getUserRole() == 'coordinator';
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+
+    // Data validation helpers
+    function isValidString(field, minLen, maxLen) {
+      return field is string && field.size() >= minLen && field.size() <= maxLen;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+    }
+
+    function hasNoScriptTags(text) {
+      return !(text.matches('.*<script.*') || text.matches('.*javascript:.*'));
+    }
+
+    function isValidRole(role) {
+      return role in ['student', 'supervisor', 'coordinator', 'admin'];
+    }
+
+    // Request data size limiter (prevents abuse via oversized documents)
+    function isReasonableSize() {
+      return request.resource.data.keys().size() <= 30;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // DENY ALL by default (any unmatched path is denied)
+    // ──────────────────────────────────────────────────────────────
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Departments
+    // ──────────────────────────────────────────────────────────────
+
+    match /departments/{departmentId} {
+      allow read: if isAuthenticated();
+      allow create: if (isCoordinator() || isAdmin())
+        && isReasonableSize()
+        && isValidString(request.resource.data.name, 2, 100);
+      allow update: if (isCoordinator() || isAdmin())
+        && isReasonableSize();
+      allow delete: if isAdmin();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Users
+    // ──────────────────────────────────────────────────────────────
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+
+      // Users can only create their own document with valid data
+      allow create: if isAuthenticated()
+        && isOwner(userId)
+        && isReasonableSize()
+        && isValidString(request.resource.data.name, 2, 100)
+        && isValidEmail(request.resource.data.email)
+        && isValidRole(request.resource.data.role);
+
+      // Users can update own profile; coordinators/admins can update any
+      allow update: if isAuthenticated()
+        && (isOwner(userId) || isCoordinator() || isAdmin())
+        && isReasonableSize()
+        // Prevent users from escalating their own role
+        && (isOwner(userId) ? (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role'])
+          || isCoordinator() || isAdmin()
+        ) : true);
+
+      allow delete: if isAdmin();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Projects
+    // ──────────────────────────────────────────────────────────────
+
+    match /projects/{projectId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize()
+        && isValidString(request.resource.data.title, 5, 200)
+        && hasNoScriptTags(request.resource.data.title);
+
+      allow update: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isCoordinator() || isAdmin();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Announcements
+    // ──────────────────────────────────────────────────────────────
+
+    match /announcements/{announcementId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize()
+        && isValidString(request.resource.data.title, 3, 200)
+        && hasNoScriptTags(request.resource.data.title);
+
+      allow update: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Discussions
+    // ──────────────────────────────────────────────────────────────
+
+    match /discussions/{discussionId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.authorId == request.auth.uid
+        && isValidString(request.resource.data.title, 3, 300)
+        && hasNoScriptTags(request.resource.data.title);
+
+      // Only author can update (or supervisors/coordinators)
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.authorId) || isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isOwner(resource.data.authorId) || isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Replies
+    // ──────────────────────────────────────────────────────────────
+
+    match /replies/{replyId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.authorId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && isOwner(resource.data.authorId)
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isOwner(resource.data.authorId) || isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Discussion Replies
+    // ──────────────────────────────────────────────────────────────
+
+    match /discussionReplies/{replyId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.authorId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && isOwner(resource.data.authorId)
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isOwner(resource.data.authorId) || isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Meeting Requests
+    // ──────────────────────────────────────────────────────────────
+
+    match /meeting_requests/{requestId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.studentId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Files
+    // ──────────────────────────────────────────────────────────────
+
+    match /files/{fileId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.uploadedBy == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.uploadedBy) || isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isOwner(resource.data.uploadedBy) || isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Tasks
+    // ──────────────────────────────────────────────────────────────
+
+    match /tasks/{taskId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize()
+        && isValidString(request.resource.data.title, 3, 300);
+
+      // Students can update task status (submission), supervisors manage
+      allow update: if isAuthenticated()
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Meetings
+    // ──────────────────────────────────────────────────────────────
+
+    match /meetings/{meetingId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize();
+
+      allow update: if isAuthenticated()
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Evaluations
+    // ──────────────────────────────────────────────────────────────
+
+    match /evaluations/{evaluationId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow update: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Grades
+    // ──────────────────────────────────────────────────────────────
+
+    match /grades/{gradeId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow update: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Notifications
+    // ──────────────────────────────────────────────────────────────
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize();
+
+      allow update: if isAuthenticated()
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Messages
+    // ──────────────────────────────────────────────────────────────
+
+    match /messages/{messageId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && request.resource.data.senderId == request.auth.uid;
+
+      allow update: if isAuthenticated()
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated();
+    }
+
+    // ─────────────────────────────────────���────────────────────────
+    // Project Ideas
+    // ──────────────────────────────────────────────────────────────
+
+    match /projectIdeas/{ideaId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated()
+        && isReasonableSize()
+        && isValidString(request.resource.data.title, 5, 200)
+        && hasNoScriptTags(request.resource.data.title);
+
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.authorId) || isSupervisor() || isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isSupervisor() || isCoordinator() || isAdmin());
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Reports
+    // ──────────────────────────────────────────────────────────────
+
+    match /reports/{reportId} {
+      allow read: if isAuthenticated()
+        && (isCoordinator() || isAdmin());
+
+      allow create: if isAuthenticated()
+        && (isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow update: if isAuthenticated()
+        && (isCoordinator() || isAdmin())
+        && isReasonableSize();
+
+      allow delete: if isAuthenticated()
+        && (isCoordinator() || isAdmin());
+    }
+  }
+}
