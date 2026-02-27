@@ -58,8 +58,10 @@ export async function uploadFile(
         throw new Error("فشل رفع الصورة. يرجى المحاولة مرة أخرى")
       }
     } else {
-      if (file.size > 5 * 1024 * 1024) {
-        throw new Error("حجم الملف كبير جداً. الحد الأقصى 5 ميجابايت للملفات غير الصور")
+      // Non-image files: limit to 700KB to stay under Firestore's 1MB document limit
+      // (base64 encoding increases size by ~33%)
+      if (file.size > 700 * 1024) {
+        throw new Error("حجم الملف كبير جداً. الحد الأقصى 700 كيلوبايت للملفات غير الصور")
       }
 
       // Convert file to base64 for non-image files
