@@ -256,9 +256,28 @@ export default function SupervisorMeetings() {
       if (!db) throw new Error("قاعدة البيانات غير متاحة")
 
       // ✅ Fix: request.date is a Firestore Timestamp - convert correctly
-      const meetingDate = request.date?.seconds
-        ? new Date(request.date.seconds * 1000)
-        : new Date(request.date)
+      let meetingDate: Date
+
+      if (request.date?.seconds) {
+        // Firestore Timestamp
+        meetingDate = new Date(request.date.seconds * 1000)
+      } else if (request.date?.toDate) {
+        // Firestore Timestamp with toDate method
+        meetingDate = request.date.toDate()
+      } else if (request.date) {
+        // String or number
+        meetingDate = new Date(request.date)
+      } else {
+        // No date provided - use current date
+        meetingDate = new Date()
+      }
+
+      // Validate the date is valid
+      if (isNaN(meetingDate.getTime())) {
+        toast.error("تاريخ الاجتماع غير صالح")
+        setProcessingRequestId(null)
+        return
+      }
 
       const dateStr = meetingDate.toISOString().split("T")[0]
 
@@ -487,7 +506,13 @@ export default function SupervisorMeetings() {
                       <div>
                         <p className="text-xs text-muted-foreground">التاريخ</p>
                         <p className="text-sm font-medium">
-                          {req.date ? new Date(req.date).toLocaleDateString("ar-EG") : "غير محدد"}
+                          {req.date?.seconds
+                            ? new Date(req.date.seconds * 1000).toLocaleDateString("ar-EG")
+                            : req.date?.toDate
+                              ? req.date.toDate().toLocaleDateString("ar-EG")
+                              : req.date
+                                ? new Date(req.date).toLocaleDateString("ar-EG")
+                                : "غير محدد"}
                         </p>
                       </div>
                       <div>
