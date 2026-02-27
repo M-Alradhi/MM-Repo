@@ -68,7 +68,7 @@ export default function CoordinatorProjects() {
   const fetchProjects = async () => {
     try {
       const projectsSnapshot = await getDocs(collection(db, "projects"))
-      const projectsData = projectsSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      const projectsData = projectsSnapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
 
       const updatedProjects = await Promise.all(
         projectsData.map(async (project: any) => {
@@ -226,11 +226,17 @@ export default function CoordinatorProjects() {
     fetchSupervisorsAndStudents()
     fetchDepartments()
     loadApprovedIdea()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [createFromIdeaId])
 
   const handleAddProject = async () => {
-    if (!newProject.title || !newProject.description || !newProject.supervisorId || !newProject.department || !newProject.startDate) {
+    if (
+      !newProject.title ||
+      !newProject.description ||
+      !newProject.supervisorId ||
+      !newProject.department ||
+      !newProject.startDate
+    ) {
       toast.error(t("fillRequiredFields"))
       return
     }
@@ -239,13 +245,16 @@ export default function CoordinatorProjects() {
       const supervisor = supervisors.find((s) => s.id === newProject.supervisorId)
       const student = students.find((s) => s.id === newProject.studentId)
 
+      const normalizedStudentId =
+        newProject.studentId && newProject.studentId !== "none" ? newProject.studentId : null
+
       const projectData: any = {
         title: newProject.title,
         description: newProject.description,
         supervisorId: newProject.supervisorId,
         supervisorName: supervisor?.name || "",
-        studentId: newProject.studentId || null,
-        studentName: student?.name || "",
+        studentId: normalizedStudentId,
+        studentName: normalizedStudentId ? (student?.name || "") : "",
         department: newProject.department,
         status: "active",
         progress: 0,
@@ -259,8 +268,8 @@ export default function CoordinatorProjects() {
 
       const projectRef = await addDoc(collection(db, "projects"), projectData)
 
-      if (newProject.studentId) {
-        await updateDoc(doc(db, "users", newProject.studentId), {
+      if (normalizedStudentId) {
+        await updateDoc(doc(db, "users", normalizedStudentId), {
           supervisorId: newProject.supervisorId,
           projectId: projectRef.id,
         })
@@ -365,13 +374,16 @@ export default function CoordinatorProjects() {
       const supervisor = supervisors.find((s) => s.id === selectedProject.supervisorId)
       const student = students.find((s) => s.id === selectedProject.studentId)
 
+      const normalizedStudentId =
+        selectedProject.studentId && selectedProject.studentId !== "none" ? selectedProject.studentId : null
+
       const updateData: any = {
         title: selectedProject.title,
         description: selectedProject.description,
         supervisorId: selectedProject.supervisorId,
         supervisorName: supervisor?.name || "",
-        studentId: selectedProject.studentId || null,
-        studentName: student?.name || "",
+        studentId: normalizedStudentId,
+        studentName: normalizedStudentId ? (student?.name || "") : "",
         department: selectedProject.department,
         updatedAt: Timestamp.now(),
       }
@@ -386,24 +398,26 @@ export default function CoordinatorProjects() {
 
       await updateDoc(doc(db, "projects", selectedProject.id), updateData)
 
-      const teamMembers = selectedProject.teamMembers || []
-      const allStudentIds = new Set<string>()
+      const rawTeamMembers = selectedProject.teamMembers || selectedProject.studentIds || []
 
-      if (selectedProject.studentId && selectedProject.studentId !== "none") {
-        allStudentIds.add(selectedProject.studentId)
-      }
-      teamMembers.forEach((memberId: string) => {
-        if (memberId) allStudentIds.add(memberId)
-      })
+      
+      const teamMemberIds = (Array.isArray(rawTeamMembers) ? rawTeamMembers : [])
+        .map((m: any) => (typeof m === "string" ? m : m?.id || m?.uid || m?.studentId))
+        .filter((id: any) => typeof id === "string" && id.trim().length > 0 && id !== "none")
+
+      const allStudentIds = new Set<string>()
+      if (normalizedStudentId) allStudentIds.add(normalizedStudentId)
+      teamMemberIds.forEach((id: string) => allStudentIds.add(id))
 
       if (allStudentIds.size > 0 && selectedProject.supervisorId) {
-        const updatePromises = Array.from(allStudentIds).map((studentId: string) =>
-          updateDoc(doc(db, "users", studentId), {
-            supervisorId: selectedProject.supervisorId,
-            projectId: selectedProject.id,
-          }),
+        await Promise.all(
+          Array.from(allStudentIds).map((sid) =>
+            updateDoc(doc(db, "users", sid), {
+              supervisorId: selectedProject.supervisorId,
+              projectId: selectedProject.id,
+            }),
+          ),
         )
-        await Promise.all(updatePromises)
       }
 
       toast.success(t("projectUpdatedSuccess"))
@@ -424,25 +438,28 @@ export default function CoordinatorProjects() {
     try {
       const projectRef = doc(db, "projects", projectToDelete.id)
 
-      // ✅ مسح projectId من جميع الطلاب المرتبطين بالمشروع
+      
       const projectSnap = await getDoc(projectRef)
       if (projectSnap.exists()) {
-        const projectData = projectSnap.data()
-
-        // جمع UIDs الطلاب (فردي أو فريق)
+        const projectData: any = projectSnap.data()
         const studentUids: string[] = []
         if (projectData.studentId) studentUids.push(projectData.studentId)
         if (Array.isArray(projectData.studentIds)) studentUids.push(...projectData.studentIds)
+        if (Array.isArray(projectData.teamMembers)) studentUids.push(...projectData.teamMembers)
 
-        // مسح projectId من كل طالب
-        if (studentUids.length > 0) {
+       
+        const normalizedUids = studentUids
+          .map((m: any) => (typeof m === "string" ? m : m?.id || m?.uid || m?.studentId))
+          .filter((id: any) => typeof id === "string" && id.trim().length > 0 && id !== "none")
+
+        if (normalizedUids.length > 0) {
           await Promise.all(
-            [...new Set(studentUids)].map((uid) =>
+            [...new Set(normalizedUids)].map((uid) =>
               updateDoc(doc(db, "users", uid), {
                 projectId: null,
                 updatedAt: Timestamp.now(),
-              }).catch(() => {}) // تجاهل لو الطالب مش موجود
-            )
+              }).catch(() => {}),
+            ),
           )
         }
       }
@@ -483,12 +500,18 @@ export default function CoordinatorProjects() {
     }
 
     const byId = departments.find((d) => d.id === deptValue)
-    if (byId) return language === "ar" ? (byId.nameAr || byId.nameEn || byId.code || t("notAssigned")) : (byId.nameEn || byId.nameAr || byId.code || t("notAssigned"))
+    if (byId)
+      return language === "ar"
+        ? byId.nameAr || byId.nameEn || byId.code || t("notAssigned")
+        : byId.nameEn || byId.nameAr || byId.code || t("notAssigned")
 
     if (typeof deptValue === "string") {
       const normalized = deptValue.trim().toLowerCase()
       const byCode = departments.find((d) => (d.code || "").trim().toLowerCase() === normalized)
-      if (byCode) return language === "ar" ? (byCode.nameAr || byCode.nameEn || byCode.code || t("notAssigned")) : (byCode.nameEn || byCode.nameAr || byCode.code || t("notAssigned"))
+      if (byCode)
+        return language === "ar"
+          ? byCode.nameAr || byCode.nameEn || byCode.code || t("notAssigned")
+          : byCode.nameEn || byCode.nameAr || byCode.code || t("notAssigned")
       if (deptValue.trim().length > 0) return deptValue
     }
 
@@ -638,12 +661,7 @@ export default function CoordinatorProjects() {
               {t("acceptProject")}
             </Button>
 
-            <Button
-              variant="destructive"
-              size="sm"
-              className="rounded-lg"
-              onClick={() => handleRejectProject(project.id)}
-            >
+            <Button variant="destructive" size="sm" className="rounded-lg" onClick={() => handleRejectProject(project.id)}>
               <X className="w-4 h-4 ml-2" />
               {t("rejectProject")}
             </Button>
@@ -703,12 +721,7 @@ export default function CoordinatorProjects() {
               </Button>
             )}
 
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex-1 rounded-lg bg-transparent"
-              onClick={() => handleArchiveProject(project.id)}
-            >
+            <Button variant="outline" size="sm" className="flex-1 rounded-lg bg-transparent" onClick={() => handleArchiveProject(project.id)}>
               <ArchiveIcon className="w-4 h-4 ml-2" />
               {t("archiveProject")}
             </Button>
@@ -902,10 +915,16 @@ export default function CoordinatorProjects() {
                 <FolderKanban className="w-16 h-16 mx-auto text-muted-foreground" />
                 <div>
                   <h3 className="text-lg font-semibold">
-                    {projects.length === 0 ? t("noProjectsCurrently") : (language === "ar" ? t("noMatchingResults") : "No matching results")}
+                    {projects.length === 0 ? t("noProjectsCurrently") : language === "ar" ? t("noMatchingResults") : "No matching results"}
                   </h3>
                   <p className="text-sm text-muted-foreground mt-2">
-                    {projects.length === 0 ? (language === "ar" ? t("startAddingProjects") : "Start by adding new projects") : (language === "ar" ? "جرب تعديل معايير البحث" : "Try adjusting search filters")}
+                    {projects.length === 0
+                      ? language === "ar"
+                        ? t("startAddingProjects")
+                        : "Start by adding new projects"
+                      : language === "ar"
+                        ? "جرب تعديل معايير البحث"
+                        : "Try adjusting search filters"}
                   </p>
                 </div>
               </div>
@@ -919,9 +938,7 @@ export default function CoordinatorProjects() {
               </TabsTrigger>
 
               <TabsTrigger value="pending" className="rounded-lg">
-                {language === "ar"
-                  ? `بانتظار الموافقة (${pendingProjects.length})`
-                  : `Awaiting Approval (${pendingProjects.length})`}
+                {language === "ar" ? `بانتظار الموافقة (${pendingProjects.length})` : `Awaiting Approval (${pendingProjects.length})`}
                 {pendingProjects.length > 0 && (
                   <Badge variant="destructive" className="mr-2 h-5 w-5 rounded-full p-0 text-xs">
                     {pendingProjects.length}
@@ -968,9 +985,7 @@ export default function CoordinatorProjects() {
 
             <TabsContent value="active" className="grid gap-6 md:grid-cols-2">
               {activeProjects.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع نشطة" : "No active projects"}
-                </p>
+                <p className="text-center text-muted-foreground py-8 col-span-2">{language === "ar" ? "لا توجد مشاريع نشطة" : "No active projects"}</p>
               ) : (
                 activeProjects.map((project) => <ProjectCard key={project.id} project={project} />)
               )}
@@ -978,9 +993,7 @@ export default function CoordinatorProjects() {
 
             <TabsContent value="completed" className="grid gap-6 md:grid-cols-2">
               {completedProjects.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع مكتملة" : "No completed projects"}
-                </p>
+                <p className="text-center text-muted-foreground py-8 col-span-2">{language === "ar" ? "لا توجد مشاريع مكتملة" : "No completed projects"}</p>
               ) : (
                 completedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
               )}
@@ -988,9 +1001,7 @@ export default function CoordinatorProjects() {
 
             <TabsContent value="rejected" className="grid gap-6 md:grid-cols-2">
               {rejectedProjects.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع مرفوضة" : "No rejected projects"}
-                </p>
+                <p className="text-center text-muted-foreground py-8 col-span-2">{language === "ar" ? "لا توجد مشاريع مرفوضة" : "No rejected projects"}</p>
               ) : (
                 rejectedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
               )}
@@ -998,9 +1009,7 @@ export default function CoordinatorProjects() {
 
             <TabsContent value="suspended" className="grid gap-6 md:grid-cols-2">
               {suspendedProjects.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع موقوفة" : "No stopped projects"}
-                </p>
+                <p className="text-center text-muted-foreground py-8 col-span-2">{language === "ar" ? "لا توجد مشاريع موقوفة" : "No stopped projects"}</p>
               ) : (
                 suspendedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
               )}
@@ -1008,9 +1017,7 @@ export default function CoordinatorProjects() {
 
             <TabsContent value="archived" className="grid gap-6 md:grid-cols-2">
               {archivedProjects.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع مؤرشفة" : "No archived projects"}
-                </p>
+                <p className="text-center text-muted-foreground py-8 col-span-2">{language === "ar" ? "لا توجد مشاريع مؤرشفة" : "No archived projects"}</p>
               ) : (
                 archivedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
               )}
@@ -1057,7 +1064,9 @@ export default function CoordinatorProjects() {
 
               <div className="space-y-4">
                 <h4 className="font-semibold">
-                  {language === "ar" ? `أعضاء الفريق الحاليون (${projectTeamMembers.length})` : `Current Team Members (${projectTeamMembers.length})`}
+                  {language === "ar"
+                    ? `أعضاء الفريق الحاليون (${projectTeamMembers.length})`
+                    : `Current Team Members (${projectTeamMembers.length})`}
                 </h4>
                 {projectTeamMembers.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
@@ -1229,7 +1238,7 @@ export default function CoordinatorProjects() {
                 {t("cancel")}
               </Button>
               <Button onClick={handleUpdateProject} className="rounded-lg" disabled={isUpdating}>
-                {isUpdating ? t("loading") : (language === "ar" ? "حفظ التغييرات" : "Save Changes")}
+                {isUpdating ? t("loading") : language === "ar" ? "حفظ التغييرات" : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1260,3 +1269,4 @@ export default function CoordinatorProjects() {
     </DashboardLayout>
   )
 }
+
