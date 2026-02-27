@@ -11,7 +11,7 @@ import { doc, setDoc, getDoc } from "firebase/firestore"
 import { getFirebaseAuth, getFirebaseDb } from "./config"
 import { createNotification } from "./notifications"
 
-export type UserRole = "student" | "supervisor" | "coordinator"
+export type UserRole = "student" | "supervisor" | "coordinator" | "admin"
 
 export interface UserData {
   uid: string
@@ -55,14 +55,7 @@ export async function signUp(
 
     await setDoc(doc(db, "users", user.uid), userData)
 
-    // Create welcome notification
-    await createNotification(
-      user.uid,
-      "مرحباً بك في منصة مشاريع التخرج",
-      "تم إنشاء حسابك بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
-      "info",
-    )
-
+   
     return { user, userData }
   } catch (error: any) {
     throw new Error(error.message)

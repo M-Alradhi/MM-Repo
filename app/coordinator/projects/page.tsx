@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useEffect, useState } from "react"
 import { collection, getDocs, doc, updateDoc, addDoc, Timestamp, query, where, getDoc } from "firebase/firestore"
-import { db } from "@/lib/firebase/config"
+import { getFirebaseDb } from "@/lib/firebase/config"
 import { Progress } from "@/components/ui/progress"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { toast } from "sonner"
@@ -31,6 +31,8 @@ import { filterProjects } from "@/lib/utils/search-utils"
 import { getDepartments, type Department } from "@/lib/utils/department-helper"
 import { calculateProjectProgress } from "@/lib/utils/grading"
 import { useLanguage } from "@/lib/contexts/language-context"
+
+const db = getFirebaseDb()
 
 export default function CoordinatorProjects() {
   const { t, language } = useLanguage()
@@ -421,6 +423,30 @@ export default function CoordinatorProjects() {
 
     try {
       const projectRef = doc(db, "projects", projectToDelete.id)
+
+      // ✅ مسح projectId من جميع الطلاب المرتبطين بالمشروع
+      const projectSnap = await getDoc(projectRef)
+      if (projectSnap.exists()) {
+        const projectData = projectSnap.data()
+
+        // جمع UIDs الطلاب (فردي أو فريق)
+        const studentUids: string[] = []
+        if (projectData.studentId) studentUids.push(projectData.studentId)
+        if (Array.isArray(projectData.studentIds)) studentUids.push(...projectData.studentIds)
+
+        // مسح projectId من كل طالب
+        if (studentUids.length > 0) {
+          await Promise.all(
+            [...new Set(studentUids)].map((uid) =>
+              updateDoc(doc(db, "users", uid), {
+                projectId: null,
+                updatedAt: Timestamp.now(),
+              }).catch(() => {}) // تجاهل لو الطالب مش موجود
+            )
+          )
+        }
+      }
+
       await updateDoc(projectRef, {
         status: "deleted",
         deletedAt: Timestamp.now(),

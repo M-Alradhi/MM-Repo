@@ -11,7 +11,6 @@ import {
   collection,
   query,
   where,
-  orderBy,
   getDocs,
   addDoc,
   updateDoc,
@@ -61,16 +60,21 @@ export default function SupervisorDiscussionDetail() {
         setDiscussion({ id: discussionDoc.id, ...discussionDoc.data() })
       }
 
-      const repliesQuery = query(
-        collection(db, "discussionReplies"),
-        where("discussionId", "==", discussionId),
-        orderBy("createdAt", "asc"),
-      )
-      const repliesSnapshot = await getDocs(repliesQuery)
-      setReplies(repliesSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })))
+      try {
+        const repliesQuery = query(
+          collection(db, "replies"),
+          where("discussionId", "==", discussionId),
+        )
+        const repliesSnapshot = await getDocs(repliesQuery)
+        const repliesData = repliesSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
+        repliesData.sort((a: any, b: any) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0))
+        setReplies(repliesData)
+      } catch (repliesError) {
+        console.error("Error fetching replies:", repliesError)
+        setReplies([])
+      }
     } catch (error) {
       console.error("Error fetching discussion:", error)
-      // toast.error("حدث خطأ أثناء تحميل النقاش")
     } finally {
       setLoading(false)
     }
@@ -96,7 +100,7 @@ export default function SupervisorDiscussionDetail() {
         return
       }
 
-      await addDoc(collection(db, "discussionReplies"), {
+      await addDoc(collection(db, "replies"), {
         discussionId,
         content: replyContent.trim(),
         authorId: userData.uid,
