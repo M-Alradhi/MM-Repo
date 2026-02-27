@@ -255,14 +255,19 @@ export default function SupervisorMeetings() {
       const db = getFirebaseDb()
       if (!db) throw new Error("قاعدة البيانات غير متاحة")
 
-      const meetingDate = new Date(request.date)
+      // ✅ Fix: request.date is a Firestore Timestamp - convert correctly
+      const meetingDate = request.date?.seconds
+        ? new Date(request.date.seconds * 1000)
+        : new Date(request.date)
+
+      const dateStr = meetingDate.toISOString().split("T")[0]
 
       // ✅ Idempotency: same request should not create two meetings
       const meetingId = buildMeetingId({
         supervisorId: userData.uid,
         studentId: request.studentId,
         title: request.title,
-        date: request.date, // assuming request.date is "YYYY-MM-DD" or a string date
+        date: dateStr,
         time: request.time || "",
       })
 

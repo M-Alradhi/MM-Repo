@@ -305,6 +305,13 @@ export default function MeetingsPage() {
           </TabsList>
 
           <TabsContent value="scheduled" className="space-y-4">
+            {meetings.length === 0 && !loading && (
+              <Card className="border-dashed">
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  {t("noMeetingsYet")}
+                </CardContent>
+              </Card>
+            )}
             {meetings.map((meeting) => (
               <Card key={meeting.id}>
                 <CardHeader>
@@ -317,21 +324,41 @@ export default function MeetingsPage() {
                     </Badge>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p>{formatDate(meeting.date)}</p>
-                  <p>{meeting.time}</p>
+                <CardContent className="space-y-2">
+                  {meeting.description && (
+                    <p className="text-sm text-muted-foreground">{meeting.description}</p>
+                  )}
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span className="flex items-center gap-1">📅 {formatDate(meeting.date)}</span>
+                    {meeting.time && <span className="flex items-center gap-1">🕐 {meeting.time}</span>}
+                    {meeting.location && <span className="flex items-center gap-1">📍 {meeting.location}</span>}
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </TabsContent>
 
           <TabsContent value="requests" className="space-y-4">
+            {meetingRequests.length === 0 && !loading && (
+              <Card className="border-dashed">
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  {t("noRequestsYet")}
+                </CardContent>
+              </Card>
+            )}
             {meetingRequests.map((request) => (
               <Card key={request.id}>
                 <CardHeader>
                   <div className="flex justify-between">
                     <CardTitle>{request.title}</CardTitle>
-                    <Badge>{request.status}</Badge>
+                    <Badge variant={
+                      request.status === "approved" ? "default" :
+                      request.status === "rejected" ? "destructive" : "secondary"
+                    }>
+                      {request.status === "pending" ? t("underReview") :
+                       request.status === "approved" ? t("approved") :
+                       t("rejected")}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>

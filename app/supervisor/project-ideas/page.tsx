@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useEffect, useMemo, useState } from "react"
 import { collection, getDocs, query, where, addDoc, Timestamp, orderBy } from "firebase/firestore"
-import { db } from "@/lib/firebase/config"
+import { getFirebaseDb } from "@/lib/firebase/config"
 import { toast } from "sonner"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { useAuth } from "@/lib/contexts/auth-context"
@@ -42,7 +42,7 @@ export default function SupervisorProjectIdeas() {
 
   const fetchDepartments = async () => {
     try {
-      const departmentsQuery = query(collection(db, "departments"), where("isActive", "==", true))
+      const departmentsQuery = query(collection(getFirebaseDb(), "departments"), where("isActive", "==", true))
       const departmentsSnapshot = await getDocs(departmentsQuery)
       const departmentsData = departmentsSnapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
       setDepartments(departmentsData)
@@ -58,7 +58,7 @@ export default function SupervisorProjectIdeas() {
       setLoading(true)
 
       const ideasQuery = query(
-        collection(db, "projectIdeas"),
+        collection(getFirebaseDb(), "projectIdeas"),
         where("proposedBySupervisor", "==", userData.uid),
         orderBy("submittedAt", "desc"),
       )
@@ -101,7 +101,7 @@ export default function SupervisorProjectIdeas() {
       const technologiesArray = formData.technologies.split(",").map((x) => x.trim()).filter(Boolean)
 
   
-      await addDoc(collection(db, "projectIdeas"), {
+      await addDoc(collection(getFirebaseDb(), "projectIdeas"), {
         title: formData.title,
         description: formData.description,
         objectives: objectivesArray,
