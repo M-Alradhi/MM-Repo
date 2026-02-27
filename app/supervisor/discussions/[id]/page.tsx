@@ -62,7 +62,7 @@ export default function SupervisorDiscussionDetail() {
 
       try {
         const repliesQuery = query(
-          collection(db, "replies"),
+          collection(db, "discussionReplies"),
           where("discussionId", "==", discussionId),
         )
         const repliesSnapshot = await getDocs(repliesQuery)
@@ -100,7 +100,7 @@ export default function SupervisorDiscussionDetail() {
         return
       }
 
-      await addDoc(collection(db, "replies"), {
+      await addDoc(collection(db, "discussionReplies"), {
         discussionId,
         content: replyContent.trim(),
         authorId: userData.uid,
