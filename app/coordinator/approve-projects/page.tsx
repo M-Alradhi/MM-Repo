@@ -143,7 +143,7 @@ export default function ApproveProjects() {
       const studentsSnapshot = await getDocs(studentsQuery)
       const studentsData = studentsSnapshot.docs
         .map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }))
-        .filter((student) => student.name)
+        .filter((student) => (student as any).name)
       setStudents(studentsData)
     } catch (error) {
       console.error("Error fetching students:", error)
@@ -232,7 +232,7 @@ export default function ApproveProjects() {
         status: "pending_team_approval",
       })
 
-      const { createBatchNotifications } = await import("@/lib/utils/notification-helper")
+      const { createBatchNotifications } = await import("@/lib/firebase/notifications")
 
       const memberNotifications = teamMembersData
         .filter((member) => member.role !== "leader")
@@ -433,7 +433,7 @@ export default function ApproveProjects() {
                 {t("teamProject")}
               </Badge>
             </CardTitle>
-            <CardDescription className="mt-2 line-clamp-2">{project.description || t("noDescription")}</CardDescription>
+            <CardDescription className="mt-2 line-clamp-2">{project.problemStatement || project.description || t("noDescription")}</CardDescription>
           </div>
           <Badge
             variant={project.status === "pending" ? "outline" : project.status === "approved" ? "default" : "destructive"}
@@ -457,7 +457,7 @@ export default function ApproveProjects() {
                 <div className="flex flex-wrap gap-1">
                   {project.teamMembers.map((member: any, index: number) => (
                     <Badge key={index} variant={member.approved ? "default" : "secondary"} className="text-xs">
-                      {member.name || member.fullName || t("member")}
+                      {member.fullName || member.name || member.email || t("member")}
                       {member.role === "leader" && ` (${t("leader")})`}
                       {!member.approved && ` (${t("notApprovedYet")})`}
                     </Badge>
@@ -747,7 +747,7 @@ export default function ApproveProjects() {
           <div className="space-y-6">
             <div>
               <h4 className="font-semibold mb-2 text-lg">{t("description")}:</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">{selectedProject?.description}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{selectedProject?.problemStatement || selectedProject?.description}</p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-4">
@@ -811,7 +811,7 @@ export default function ApproveProjects() {
                   <div className="flex flex-wrap gap-2">
                     {selectedProject?.teamMembers?.map((member: any, index: number) => (
                       <Badge key={index} variant={member.approved ? "default" : "secondary"}>
-                        {member.name || member.email}
+                        {member.fullName || member.name || member.email}
                         {member.role === "leader" && ` (${t("leader")})`}
                       </Badge>
                     ))}

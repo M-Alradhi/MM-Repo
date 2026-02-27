@@ -85,9 +85,10 @@ export default function TeamApprovalPage() {
         if (member.email === userData?.email) {
           return {
             ...member,
-            userId: userData.uid,
-            name: userData.name || member.name,
-            studentId: userData.studentId || member.studentId,
+            userId: userData?.uid,
+            name: userData?.name || member.name,
+            fullName: userData?.name || member.fullName || member.name,
+            studentId: userData?.studentId || member.studentId,
             approved: true,
             approvedAt: Timestamp.now(),
           }
@@ -209,7 +210,7 @@ export default function TeamApprovalPage() {
                           key={`${invite.id}-member-${member.email}-${index}`}
                           variant={member.approved ? "default" : "secondary"}
                         >
-                          {member.name || member.email}
+                          {member.fullName || member.name || member.email}
                           {member.role === "leader" && ` (${t("leader")})`}
                           {member.approved && <Check className="h-3 w-3 mr-1" />}
                         </Badge>
