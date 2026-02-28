@@ -39,6 +39,8 @@ import { Progress } from "@/components/ui/progress"
 import type { SubmittedFile } from "@/lib/types"
 import { supervisorSidebarItems } from "@/lib/constants/supervisor-sidebar"
 import { uploadToImgBB, isImageFile } from "@/lib/imgbb"
+import { getFirebaseStorage } from "@/lib/firebase/config"
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage"
 
 interface Student {
   id: string
@@ -234,15 +236,16 @@ export default function SupervisorTasks() {
             isImage: true,
           })
         } else {
-          const reader = new FileReader()
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          })
+          // ✅ رفع على Firebase Storage بدل base64
+          const storage = getFirebaseStorage()
+          const timestamp = Date.now()
+          const storagePath = `supervisor-files/${timestamp}_${file.name}`
+          const storageRef = ref(storage, storagePath)
+          await uploadBytes(storageRef, file)
+          const downloadUrl = await getDownloadURL(storageRef)
           uploadedFiles.push({
             name: file.name,
-            url: dataUrl,
+            url: downloadUrl,
             size: file.size,
             type: file.type,
             isImage: false,
@@ -504,15 +507,16 @@ export default function SupervisorTasks() {
             isImage: true,
           })
         } else {
-          const reader = new FileReader()
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-            reader.onload = () => resolve(reader.result as string)
-            reader.onerror = reject
-            reader.readAsDataURL(file)
-          })
+          // ✅ رفع على Firebase Storage بدل base64
+          const storage = getFirebaseStorage()
+          const timestamp = Date.now()
+          const storagePath = `supervisor-files/${timestamp}_${file.name}`
+          const storageRef = ref(storage, storagePath)
+          await uploadBytes(storageRef, file)
+          const downloadUrl = await getDownloadURL(storageRef)
           uploadedFiles.push({
             name: file.name,
-            url: dataUrl,
+            url: downloadUrl,
             size: file.size,
             type: file.type,
             isImage: false,
