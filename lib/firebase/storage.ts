@@ -1,14 +1,16 @@
 // Enhanced file storage with ImgBB support for images
-// Images are stored on ImgBB, other files as base64 in Firestore
+// Images are stored on ImgBB, other files are stored on Firebase Storage
 
-import { getFirebaseDb } from "./config"
+import { getFirebaseDb, getFirebaseStorage } from "./config"
 import { collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, doc } from "firebase/firestore"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
 import { uploadToImgBB, isImageFile, validateImageSize, isFileSafeToUpload, sanitizeFileName } from "@/lib/imgbb"
 
 export interface FileMetadata {
   id?: string
   name: string
-  url: string // ImgBB URL for images, base64 for other files
+  url: string // ImgBB URL for images, Firebase Storage URL for other files
+  storagePath?: string // Firebase Storage path for deletion
   size: number
   type: string
   uploadedBy: string
@@ -39,9 +41,10 @@ export async function uploadFile(
     let url: string
     let imgbbId: string | undefined
     let deleteUrl: string | undefined
+    let storagePath: string | undefined
     const isImage = isImageFile(file)
 
-    // Upload images to ImgBB, other files as base64
+    // Upload images to ImgBB, other files to Firebase Storage
     if (isImage) {
       // Validate image size
       if (!validateImageSize(file)) {
@@ -58,19 +61,22 @@ export async function uploadFile(
         throw new Error("فشل رفع الصورة. يرجى المحاولة مرة أخرى")
       }
     } else {
-      // Non-image files: limit to 700KB to stay under Firestore's 1MB document limit
-      // (base64 encoding increases size by ~33%)
-      if (file.size > 700 * 1024) {
-        throw new Error("حجم الملف كبير جداً. الحد الأقصى 700 كيلوبايت للملفات غير الصور")
+      // Non-image files: upload to Firebase Storage (no size limit issue)
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error("حجم الملف كبير جداً. الحد الأقصى 50 ميجابايت")
       }
 
-      // Convert file to base64 for non-image files
-      url = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result as string)
-        reader.onerror = () => reject(new Error("فشل قراءة الملف"))
-        reader.readAsDataURL(file)
-      })
+      try {
+        const firebaseStorage = getFirebaseStorage()
+        const timestamp = Date.now()
+        storagePath = `files/${userId}/${timestamp}_${safeName}`
+        const storageRef = ref(firebaseStorage, storagePath)
+        await uploadBytes(storageRef, file)
+        url = await getDownloadURL(storageRef)
+      } catch (error) {
+        console.error("Error uploading to Firebase Storage:", error)
+        throw new Error("فشل رفع الملف. يرجى المحاولة مرة أخرى")
+      }
     }
 
     const metadata: FileMetadata = {
@@ -84,6 +90,7 @@ export async function uploadFile(
       isImage,
       imgbbId,
       deleteUrl,
+      storagePath,
     }
 
     const fileData: Record<string, unknown> = {
@@ -106,6 +113,10 @@ export async function uploadFile(
 
     if (deleteUrl) {
       fileData.deleteUrl = deleteUrl
+    }
+
+    if (storagePath) {
+      fileData.storagePath = storagePath
     }
 
     try {
@@ -143,6 +154,7 @@ export async function listFiles(projectId: string): Promise<FileMetadata[]> {
         isImage: data.isImage,
         imgbbId: data.imgbbId,
         deleteUrl: data.deleteUrl,
+        storagePath: data.storagePath,
       } as FileMetadata
     })
 
@@ -156,9 +168,23 @@ export async function listFiles(projectId: string): Promise<FileMetadata[]> {
 export async function deleteFile(fileId: string) {
   try {
     const db = getFirebaseDb()
+    const fileDoc = await getDocs(query(collection(db, "files"), where("__name__", "==", fileId)))
+    
+    // If file is stored in Firebase Storage, delete it there too
+    if (!fileDoc.empty) {
+      const data = fileDoc.docs[0].data()
+      if (data.storagePath) {
+        try {
+          const firebaseStorage = getFirebaseStorage()
+          const storageRef = ref(firebaseStorage, data.storagePath)
+          await deleteObject(storageRef)
+        } catch (storageError) {
+          console.error("Error deleting from Firebase Storage:", storageError)
+        }
+      }
+    }
+
     await deleteDoc(doc(db, "files", fileId))
-    // Note: ImgBB images are not automatically deleted
-    // You would need to use the delete_url if you want to delete from ImgBB
   } catch (error) {
     console.error("Error deleting file:", error)
     throw error
@@ -186,6 +212,7 @@ export async function getUserFiles(userId: string): Promise<FileMetadata[]> {
         isImage: data.isImage,
         imgbbId: data.imgbbId,
         deleteUrl: data.deleteUrl,
+        storagePath: data.storagePath,
       } as FileMetadata
     })
 
