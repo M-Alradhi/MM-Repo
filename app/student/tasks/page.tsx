@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/contexts/auth-context"
 import { useLanguage } from "@/lib/contexts/language-context"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { collection, query, where, getDocs, doc, updateDoc, Timestamp, orderBy } from "firebase/firestore"
 import { getFirebaseDb } from "@/lib/firebase/config"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -37,18 +37,46 @@ interface Task extends TaskGrade {
   createdAt: any
   projectId?: string
 
-  // ✅ NEW: task resources uploaded by supervisor (student can view/download)
+  // supervisor resources
   supervisorFiles?: SubmittedFile[]
+}
+
+/**
+ * ✅ IMPORTANT:
+ * Firestore doc limit is 1MB, so we MUST NOT store base64/dataUrl/binary in submittedFiles.
+ * Keep only light fields.
+ */
+function sanitizeSubmittedFiles(files: SubmittedFile[]): SubmittedFile[] {
+  return (files || [])
+    .map((f: any) => {
+      // remove heavy fields if they exist
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { base64, dataUrl, file, blob, buffer, bytes, content, ...rest } = f ?? {}
+
+      return {
+        name: rest?.name || "file",
+        url: rest?.url || "",
+        isImage: !!rest?.isImage,
+        size: typeof rest?.size === "number" ? rest.size : undefined,
+        type: rest?.type || rest?.contentType || undefined,
+        // لو عندك حقل uploadedAt بالنوع نفسه، خليه خفيف
+        uploadedAt: rest?.uploadedAt || undefined,
+      } as SubmittedFile
+    })
+    .filter((f) => typeof (f as any).url === "string" && (f as any).url.trim().length > 0)
 }
 
 export default function StudentTasks() {
   const { userData, loading: authLoading } = useAuth()
   const { t } = useLanguage()
+
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
   const [submitDialogOpen, setSubmitDialogOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+
   const [submissionForm, setSubmissionForm] = useState({
     text: "",
     files: [] as SubmittedFile[],
@@ -69,18 +97,17 @@ export default function StudentTasks() {
         setError(null)
 
         const db = getFirebaseDb()
-
         const tasksQuery = query(
           collection(db, "tasks"),
           where("studentId", "==", userData.uid),
           orderBy("createdAt", "desc"),
         )
-        const tasksSnapshot = await getDocs(tasksQuery)
-        const tasksData = tasksSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Task[]
 
+        const tasksSnapshot = await getDocs(tasksQuery)
+        const tasksData = tasksSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Task[]
         setTasks(tasksData)
-      } catch (error) {
-        console.error("Error fetching tasks:", error)
+      } catch (err) {
+        console.error("Error fetching tasks:", err)
         setError(t("errorLoadingTasks"))
       } finally {
         setLoading(false)
@@ -88,21 +115,45 @@ export default function StudentTasks() {
     }
 
     fetchTasks()
-  }, [userData, authLoading])
+  }, [userData, authLoading, t])
+
+  const reloadTasks = async () => {
+    const db = getFirebaseDb()
+    const tasksQuery = query(
+      collection(db, "tasks"),
+      where("studentId", "==", userData?.uid),
+      orderBy("createdAt", "desc"),
+    )
+    const tasksSnapshot = await getDocs(tasksQuery)
+    const tasksData = tasksSnapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Task[]
+    setTasks(tasksData)
+  }
 
   const handleSubmitTask = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (!selectedTask) return
 
-    if (!submissionForm.text.trim() && submissionForm.files.length === 0) {
+    const cleanText = submissionForm.text?.trim() || ""
+
+    // ✅ sanitize files (remove base64/dataUrl/etc)
+    const safeFiles = sanitizeSubmittedFiles(submissionForm.files)
+
+    if (!cleanText && safeFiles.length === 0) {
       toast.error(t("attachFile"))
+      return
+    }
+
+    // ✅ لو المستخدم اختار ملف لكن الرفع فشل وما عنده url
+    const hadFilesButNoUrls = (submissionForm.files?.length || 0) > 0 && safeFiles.length === 0
+    if (hadFilesButNoUrls) {
+      toast.error("فشل رفع الملفات (لا يوجد رابط). تأكدي أن الرفع اكتمل قبل الإرسال.")
       return
     }
 
     try {
       const db = getFirebaseDb()
 
+      // update all team tasks matching same project + title
       const teamTasksQuery = query(
         collection(db, "tasks"),
         where("projectId", "==", selectedTask.projectId),
@@ -110,17 +161,15 @@ export default function StudentTasks() {
       )
       const teamTasksSnapshot = await getDocs(teamTasksQuery)
 
-      const updatePromises = teamTasksSnapshot.docs.map((taskDoc) => {
-        return updateDoc(doc(db, "tasks", taskDoc.id), {
-          status: "submitted",
-          submissionText: submissionForm.text,
-          submittedFiles: submissionForm.files,
-          submittedAt: Timestamp.now(),
-          submittedBy: userData?.uid,
-        })
-      })
+      const payload = {
+        status: "submitted",
+        submissionText: cleanText,
+        submittedFiles: safeFiles, // ✅ now small
+        submittedAt: Timestamp.now(),
+        submittedBy: userData?.uid,
+      }
 
-      await Promise.all(updatePromises)
+      await Promise.all(teamTasksSnapshot.docs.map((taskDoc) => updateDoc(doc(db, "tasks", taskDoc.id), payload)))
 
       if (selectedTask.supervisorId) {
         await createNotification({
@@ -137,16 +186,9 @@ export default function StudentTasks() {
       setSelectedTask(null)
       setSubmissionForm({ text: "", files: [] })
 
-      const tasksQuery = query(
-        collection(db, "tasks"),
-        where("studentId", "==", userData?.uid),
-        orderBy("createdAt", "desc"),
-      )
-      const tasksSnapshot = await getDocs(tasksQuery)
-      const tasksData = tasksSnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Task[]
-      setTasks(tasksData)
-    } catch (error) {
-      console.error("Error submitting task:", error)
+      await reloadTasks()
+    } catch (err) {
+      console.error("Error submitting task:", err)
       toast.error(t("errorMessage"))
     }
   }
@@ -160,17 +202,15 @@ export default function StudentTasks() {
     setSubmitDialogOpen(true)
   }
 
-  const pendingTasks = tasks.filter((task) => task.status === "pending")
-  const submittedTasks = tasks.filter((task) => task.status === "submitted")
-  const gradedTasks = tasks.filter((task) => task.status === "graded")
+  const pendingTasks = useMemo(() => tasks.filter((task) => task.status === "pending"), [tasks])
+  const submittedTasks = useMemo(() => tasks.filter((task) => task.status === "submitted"), [tasks])
+  const gradedTasks = useMemo(() => tasks.filter((task) => task.status === "graded"), [tasks])
 
   const TaskCard = ({ task }: { task: Task }) => {
     const overdue = isTaskOverdue(task.dueDate, task.status)
 
     return (
-      <Card
-        className={`hover:shadow-lg transition-all duration-300 ${overdue ? "border-destructive/50 bg-destructive/5" : ""}`}
-      >
+      <Card className={`hover:shadow-lg transition-all duration-300 ${overdue ? "border-destructive/50 bg-destructive/5" : ""}`}>
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div className="space-y-2 flex-1">
@@ -180,6 +220,7 @@ export default function StudentTasks() {
               </div>
               <CardDescription className="line-clamp-2 leading-relaxed">{task.description}</CardDescription>
             </div>
+
             {task.status === "graded" && task.grade !== undefined && (
               <div className="text-left min-w-[80px]">
                 <div className={`text-4xl font-bold ${getGradeColor(task.grade)}`}>{task.grade.toFixed(1)}</div>
@@ -206,13 +247,11 @@ export default function StudentTasks() {
               </div>
             </div>
 
-            {/* ✅ NEW: Supervisor task resources */}
+            {/* supervisor files */}
             {task.supervisorFiles && task.supervisorFiles.length > 0 && (
               <div className="p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg border border-amber-200 dark:border-amber-900 space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold text-amber-700 dark:text-amber-400">
-                    {t("supervisorTaskFiles")}
-                  </Label>
+                  <Label className="text-sm font-semibold text-amber-700 dark:text-amber-400">{t("supervisorTaskFiles")}</Label>
                   <Badge variant="secondary" className="text-xs">
                     {task.supervisorFiles.length}
                   </Badge>
@@ -222,17 +261,13 @@ export default function StudentTasks() {
                   {task.supervisorFiles.map((file, index) => (
                     <a
                       key={index}
-                      href={file.url}
+                      href={(file as any).url}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded border hover:border-amber-400 transition-colors group"
                     >
-                      {file.isImage ? (
-                        <ImageIcon className="w-4 h-4 text-amber-600" />
-                      ) : (
-                        <FileIcon className="w-4 h-4 text-muted-foreground" />
-                      )}
-                      <span className="text-sm flex-1 truncate group-hover:text-amber-700">{file.name}</span>
+                      {(file as any).isImage ? <ImageIcon className="w-4 h-4 text-amber-600" /> : <FileIcon className="w-4 h-4 text-muted-foreground" />}
+                      <span className="text-sm flex-1 truncate group-hover:text-amber-700">{(file as any).name}</span>
                       <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-amber-700" />
                       <Download className="w-4 h-4 text-muted-foreground group-hover:text-amber-700" />
                     </a>
@@ -243,9 +278,7 @@ export default function StudentTasks() {
 
             {task.status === "graded" && task.feedback && (
               <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-900">
-                <Label className="text-sm font-semibold mb-2 block text-green-700 dark:text-green-400">
-                  {t("evaluationFeedback")}:
-                </Label>
+                <Label className="text-sm font-semibold mb-2 block text-green-700 dark:text-green-400">{t("evaluationFeedback")}:</Label>
                 <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{task.feedback}</p>
                 <p className="text-xs text-muted-foreground mt-2">
                   {t("taskGraded")}: {formatArabicDate(task.gradedAt)}
@@ -259,12 +292,14 @@ export default function StudentTasks() {
                   <Label className="text-sm font-semibold text-blue-700 dark:text-blue-400">{t("taskSubmitted")}</Label>
                   <span className="text-xs text-muted-foreground">{formatArabicDate(task.submittedAt)}</span>
                 </div>
+
                 {task.submissionText && (
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1 block">{t("feedback")}:</Label>
                     <p className="text-sm text-foreground whitespace-pre-wrap">{task.submissionText}</p>
                   </div>
                 )}
+
                 {task.submittedFiles && task.submittedFiles.length > 0 && (
                   <div>
                     <Label className="text-xs text-muted-foreground mb-2 block">{t("attachedFiles")}:</Label>
@@ -272,17 +307,13 @@ export default function StudentTasks() {
                       {task.submittedFiles.map((file, index) => (
                         <a
                           key={index}
-                          href={file.url}
+                          href={(file as any).url}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 p-2 bg-white dark:bg-gray-900 rounded border hover:border-blue-400 transition-colors group"
                         >
-                          {file.isImage ? (
-                            <ImageIcon className="w-4 h-4 text-blue-500" />
-                          ) : (
-                            <FileIcon className="w-4 h-4 text-muted-foreground" />
-                          )}
-                          <span className="text-sm flex-1 truncate group-hover:text-blue-600">{file.name}</span>
+                          {(file as any).isImage ? <ImageIcon className="w-4 h-4 text-blue-500" /> : <FileIcon className="w-4 h-4 text-muted-foreground" />}
+                          <span className="text-sm flex-1 truncate group-hover:text-blue-600">{(file as any).name}</span>
                           <Download className="w-4 h-4 text-muted-foreground group-hover:text-blue-600" />
                         </a>
                       ))}
@@ -299,6 +330,7 @@ export default function StudentTasks() {
                   {t("submit")} {t("tasks")}
                 </Button>
               )}
+
               {task.status === "submitted" && (
                 <Button onClick={() => openSubmitDialog(task)} variant="outline" className="gap-2 flex-1" size="lg">
                   {t("edit")} {t("submit")}
@@ -348,7 +380,6 @@ export default function StudentTasks() {
         ) : tasks.length === 0 ? (
           <div className="space-y-8">
             <GradeOverviewCard tasks={tasks} />
-
             <Card>
               <CardContent className="p-12">
                 <div className="text-center space-y-4">
@@ -395,11 +426,7 @@ export default function StudentTasks() {
 
               <TabsContent value="all" className="space-y-6">
                 {tasks.map((task, index) => (
-                  <div
-                    key={task.id}
-                    className="animate-in fade-in slide-in-from-bottom duration-500"
-                    style={{ animationDelay: `${index * 50}ms` }}
-                  >
+                  <div key={task.id} className="animate-in fade-in slide-in-from-bottom duration-500" style={{ animationDelay: `${index * 50}ms` }}>
                     <TaskCard task={task} />
                   </div>
                 ))}
@@ -463,6 +490,7 @@ export default function StudentTasks() {
                 {t("submit")} {t("tasks")}
               </DialogTitle>
             </DialogHeader>
+
             {selectedTask && (
               <div className="space-y-6">
                 <Card className="border-2">
@@ -485,11 +513,10 @@ export default function StudentTasks() {
                       </span>
                     </CardDescription>
                   </CardHeader>
+
                   {selectedTask.description && (
                     <CardContent>
-                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                        {selectedTask.description}
-                      </p>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{selectedTask.description}</p>
                     </CardContent>
                   )}
                 </Card>
