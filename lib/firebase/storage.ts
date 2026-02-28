@@ -1,172 +1,192 @@
-// ImgBB API Integration for image uploads
-// Images are uploaded through our API route to keep API key secure
+// Images → ImgBB | Other files → Firebase Storage
 
-export interface ImgBBUploadResponse {
-  data: {
-    id: string
-    title: string
-    url_viewer: string
-    url: string
-    display_url: string
-    width: number
-    height: number
-    size: number
-    time: number
-    expiration: number
-    image: {
-      filename: string
-      name: string
-      mime: string
-      extension: string
-      url: string
-    }
-    thumb: {
-      filename: string
-      name: string
-      mime: string
-      extension: string
-      url: string
-    }
-    medium?: {
-      filename: string
-      name: string
-      mime: string
-      extension: string
-      url: string
-    }
-    delete_url: string
-  }
-  success: boolean
-  status: number
+import { getFirebaseDb, getFirebaseStorage } from "./config"
+import { collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc, doc } from "firebase/firestore"
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage"
+import { uploadToImgBB, isImageFile, validateImageSize, isFileSafeToUpload, sanitizeFileName } from "@/lib/imgbb"
+
+export interface FileMetadata {
+  id?: string
+  name: string
+  url: string
+  size: number
+  type: string
+  uploadedBy: string
+  uploadedAt: Date
+  projectId?: string
+  isImage?: boolean
+  imgbbId?: string
+  deleteUrl?: string
+  storagePath?: string
 }
 
-/**
- * Upload an image to ImgBB through our secure API route
- * @param file - The image file to upload
- * @param name - Optional name for the image
- * @returns Promise with the upload response
- */
-export async function uploadToImgBB(file: File, name?: string): Promise<ImgBBUploadResponse> {
+export async function uploadFile(
+  file: File,
+  userId: string,
+  projectId?: string,
+): Promise<{ url: string; metadata: FileMetadata }> {
   try {
-    // Convert file to base64
-    const base64 = await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const result = reader.result as string
-        // Remove the data URL prefix (e.g., "data:image/png;base64,")
-        const base64String = result.split(",")[1]
-        resolve(base64String)
+    const db = getFirebaseDb()
+
+    const safetyCheck = isFileSafeToUpload(file)
+    if (!safetyCheck.safe) {
+      throw new Error(safetyCheck.reason || "نوع الملف غير مسموح به")
+    }
+
+    const safeName = sanitizeFileName(file.name)
+
+    let url: string
+    let imgbbId: string | undefined
+    let deleteUrl: string | undefined
+    let storagePath: string | undefined
+    const isImage = isImageFile(file)
+
+    if (isImage) {
+      // ✅ الصور → ImgBB
+      if (!validateImageSize(file)) {
+        throw new Error("حجم الصورة كبير جداً. الحد الأقصى 32 ميجابايت")
       }
-      reader.onerror = reject
-      reader.readAsDataURL(file)
+      const imgbbResponse = await uploadToImgBB(file, safeName)
+      url = imgbbResponse.data.display_url
+      imgbbId = imgbbResponse.data.id
+      deleteUrl = imgbbResponse.data.delete_url
+    } else {
+      // ✅ الملفات الأخرى → Firebase Storage
+      if (file.size > 50 * 1024 * 1024) {
+        throw new Error("حجم الملف كبير جداً. الحد الأقصى 50 ميجابايت")
+      }
+      try {
+        const storage = getFirebaseStorage()
+        const timestamp = Date.now()
+        storagePath = `files/${userId}/${timestamp}_${safeName}`
+        const storageRef = ref(storage, storagePath)
+        await uploadBytes(storageRef, file)
+        url = await getDownloadURL(storageRef)
+      } catch (error) {
+        console.error("Error uploading to Firebase Storage:", error)
+        throw new Error("فشل رفع الملف. يرجى المحاولة مرة أخرى")
+      }
+    }
+
+    const metadata: FileMetadata = {
+      name: safeName,
+      url,
+      size: file.size,
+      type: file.type,
+      uploadedBy: userId,
+      uploadedAt: new Date(),
+      projectId,
+      isImage,
+      imgbbId,
+      deleteUrl,
+      storagePath,
+    }
+
+    const fileData: Record<string, unknown> = {
+      name: safeName,
+      url,
+      size: file.size,
+      type: file.type,
+      uploadedBy: userId,
+      uploadedAt: serverTimestamp(),
+      isImage,
+    }
+
+    if (projectId !== undefined) fileData.projectId = projectId
+    if (imgbbId) fileData.imgbbId = imgbbId
+    if (deleteUrl) fileData.deleteUrl = deleteUrl
+    if (storagePath) fileData.storagePath = storagePath
+
+    try {
+      const docRef = await addDoc(collection(db, "files"), fileData)
+      metadata.id = docRef.id
+    } catch (firestoreError) {
+      console.error("Error saving to Firestore:", firestoreError)
+      throw new Error("فشل حفظ بيانات الملف. يرجى المحاولة مرة أخرى")
+    }
+
+    return { url, metadata }
+  } catch (error: unknown) {
+    throw error
+  }
+}
+
+export async function listFiles(projectId: string): Promise<FileMetadata[]> {
+  try {
+    const db = getFirebaseDb()
+    const q = query(collection(db, "files"), where("projectId", "==", projectId))
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map((d) => {
+      const data = d.data()
+      return {
+        id: d.id,
+        name: data.name,
+        url: data.url,
+        size: data.size,
+        type: data.type,
+        uploadedBy: data.uploadedBy,
+        uploadedAt: data.uploadedAt?.toDate(),
+        projectId: data.projectId,
+        isImage: data.isImage,
+        imgbbId: data.imgbbId,
+        deleteUrl: data.deleteUrl,
+        storagePath: data.storagePath,
+      } as FileMetadata
     })
+  } catch (error) {
+    console.error("Error listing files:", error)
+    throw error
+  }
+}
 
-    // Create form data
-    const formData = new FormData()
-    formData.append("image", base64)
-    if (name) {
-      formData.append("name", name)
+export async function deleteFile(fileId: string) {
+  try {
+    const db = getFirebaseDb()
+    const fileDoc = await getDocs(query(collection(db, "files"), where("__name__", "==", fileId)))
+
+    if (!fileDoc.empty) {
+      const data = fileDoc.docs[0].data()
+      if (data.storagePath) {
+        try {
+          const storage = getFirebaseStorage()
+          await deleteObject(ref(storage, data.storagePath))
+        } catch (e) {
+          console.error("Error deleting from Firebase Storage:", e)
+        }
+      }
     }
 
-    // Upload through our API route (keeps API key secure on server)
-    const response = await fetch("/api/upload-image", {
-      method: "POST",
-      body: formData,
+    await deleteDoc(doc(db, "files", fileId))
+  } catch (error) {
+    console.error("Error deleting file:", error)
+    throw error
+  }
+}
+
+export async function getUserFiles(userId: string): Promise<FileMetadata[]> {
+  try {
+    const db = getFirebaseDb()
+    const q = query(collection(db, "files"), where("uploadedBy", "==", userId))
+    const querySnapshot = await getDocs(q)
+    return querySnapshot.docs.map((d) => {
+      const data = d.data()
+      return {
+        id: d.id,
+        name: data.name,
+        url: data.url,
+        size: data.size,
+        type: data.type,
+        uploadedBy: data.uploadedBy,
+        uploadedAt: data.uploadedAt?.toDate(),
+        projectId: data.projectId,
+        isImage: data.isImage,
+        imgbbId: data.imgbbId,
+        deleteUrl: data.deleteUrl,
+        storagePath: data.storagePath,
+      } as FileMetadata
     })
-
-    if (!response.ok) {
-      const errData = await response.json().catch(() => ({}))
-      throw new Error(errData?.error || `فشل رفع الصورة (${response.status})`)
-    }
-
-    const data: ImgBBUploadResponse = await response.json()
-
-    if (!data.success) {
-      throw new Error("فشل رفع الصورة على ImgBB")
-    }
-
-    return data
-  } catch (err: any) {
-    throw new Error(err?.message || "فشل رفع الصورة. يرجى المحاولة مرة أخرى")
+  } catch (error) {
+    console.error("Error listing user files:", error)
+    throw error
   }
-}
-
-// ─── Allowed File Types ──────────────────────────────────────────
-
-const ALLOWED_IMAGE_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/svg+xml",
-  "image/bmp",
-]
-
-const ALLOWED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp"]
-
-// Dangerous file types that should never be uploaded
-const BLOCKED_EXTENSIONS = [
-  ".exe", ".bat", ".cmd", ".com", ".msi", ".scr", ".pif",
-  ".js", ".vbs", ".wsf", ".wsh", ".ps1", ".sh", ".bash",
-  ".php", ".asp", ".aspx", ".jsp", ".cgi", ".py", ".pl",
-  ".html", ".htm", ".svg", // SVG can contain scripts
-]
-
-/**
- * Check if a file is an image by MIME type and extension
- */
-export function isImageFile(file: File): boolean {
-  const mimeCheck = ALLOWED_IMAGE_TYPES.includes(file.type)
-  const extCheck = ALLOWED_IMAGE_EXTENSIONS.some((ext) =>
-    file.name.toLowerCase().endsWith(ext)
-  )
-  // Both MIME type and extension must match to prevent type confusion
-  return mimeCheck && extCheck
-}
-
-/**
- * Validate that a file is safe to upload
- */
-export function isFileSafeToUpload(file: File): { safe: boolean; reason?: string } {
-  // Check for blocked extensions
-  const fileName = file.name.toLowerCase()
-  const isBlocked = BLOCKED_EXTENSIONS.some((ext) => fileName.endsWith(ext))
-  if (isBlocked) {
-    return { safe: false, reason: "نوع الملف غير مسموح به" }
-  }
-
-  // Check for double extensions (e.g., file.jpg.exe)
-  const parts = fileName.split(".")
-  if (parts.length > 2) {
-    const lastExt = `.${parts[parts.length - 1]}`
-    if (BLOCKED_EXTENSIONS.includes(lastExt)) {
-      return { safe: false, reason: "نوع الملف غير مسموح به" }
-    }
-  }
-
-  // Check for null bytes in filename (path traversal)
-  if (file.name.includes("\0") || file.name.includes("..")) {
-    return { safe: false, reason: "اسم الملف غير صالح" }
-  }
-
-  return { safe: true }
-}
-
-/**
- * Validate image file size (max 32MB for ImgBB free tier)
- */
-export function validateImageSize(file: File, maxSizeMB = 32): boolean {
-  const maxSizeBytes = maxSizeMB * 1024 * 1024
-  return file.size <= maxSizeBytes
-}
-
-/**
- * Sanitize a filename for safe storage
- */
-export function sanitizeFileName(name: string): string {
-  return name
-    .replace(/[^\w.\-\u0600-\u06FF]/g, "_") // Allow alphanumeric, dots, hyphens, and Arabic
-    .replace(/\.{2,}/g, ".") // Remove double dots
-    .replace(/^\./, "_") // Don't start with dot
-    .slice(0, 100) // Limit length
 }
