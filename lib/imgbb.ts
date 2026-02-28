@@ -75,59 +75,19 @@ export async function uploadToImgBB(file: File, name?: string): Promise<ImgBBUpl
     })
 
     if (!response.ok) {
-      return convertToBase64Response(file, name)
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData?.error || `فشل رفع الصورة (${response.status})`)
     }
 
     const data: ImgBBUploadResponse = await response.json()
 
     if (!data.success) {
-      return convertToBase64Response(file, name)
+      throw new Error("فشل رفع الصورة على ImgBB")
     }
 
     return data
-  } catch {
-    return convertToBase64Response(file, name)
-  }
-}
-
-async function convertToBase64Response(file: File, name?: string): Promise<ImgBBUploadResponse> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-
-  return {
-    data: {
-      id: `local_${Date.now()}`,
-      title: name || file.name,
-      url_viewer: dataUrl,
-      url: dataUrl,
-      display_url: dataUrl,
-      width: 0,
-      height: 0,
-      size: file.size,
-      time: Math.floor(Date.now() / 1000),
-      expiration: 0,
-      image: {
-        filename: file.name,
-        name: name || file.name,
-        mime: file.type,
-        extension: file.name.split(".").pop() || "",
-        url: dataUrl,
-      },
-      thumb: {
-        filename: file.name,
-        name: name || file.name,
-        mime: file.type,
-        extension: file.name.split(".").pop() || "",
-        url: dataUrl,
-      },
-      delete_url: "",
-    },
-    success: true,
-    status: 200,
+  } catch (err: any) {
+    throw new Error(err?.message || "فشل رفع الصورة. يرجى المحاولة مرة أخرى")
   }
 }
 
