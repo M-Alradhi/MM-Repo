@@ -161,7 +161,7 @@ export function TaskFileUpload({ onFilesChange, existingFiles = [], maxFiles = 5
                 <Upload className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm text-muted-foreground mb-2">اسحب الملفات هنا أو انقر للاختيار</p>
                 <p className="text-xs text-muted-foreground">
-                  (الصور: ImgBB • الملفات الأخرى: Firestore) - الحد الأقصى {maxFiles} ملفات
+                  (الصور: ImgBB • الملفات الأخرى: Firebase Storage) - الحد الأقصى {maxFiles} ملفات
                 </p>
                 <input
                   type="file"
