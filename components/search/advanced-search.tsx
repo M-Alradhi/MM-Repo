@@ -34,7 +34,7 @@ interface AdvancedSearchProps {
   students?: Array<{ id: string; name: string }>
   statusOptions?: Array<{ value: string; label: string }>
   priorityOptions?: Array<{ value: string; label: string }>
-  departments?: string[]
+  departments?: Array<{ value: string; label: string }>
   placeholder?: string
 }
 

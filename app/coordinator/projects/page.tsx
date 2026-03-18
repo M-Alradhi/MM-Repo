@@ -1421,13 +1421,8 @@ export default function CoordinatorProjects() {
           showDepartmentFilter
           showSupervisorFilter
           showStudentFilter
-          showSemesterFilter
           supervisors={supervisors.map((s) => ({ id: s.id, name: s.name }))}
           students={students.map((s) => ({ id: s.id, name: s.name }))}
-          departmentOptions={departments.map((dept) => ({
-            value: dept.code || dept.id,
-            label: language === "ar" ? dept.nameAr : dept.nameEn,
-          }))}
           statusOptions={[
             { value: "active", label: t("active") },
             { value: "pending", label: t("awaitingApproval") },
