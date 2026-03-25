@@ -104,20 +104,20 @@ export default function SupervisorCalendar() {
     try {
       const db = getFirebaseDb()
       await updateDoc(doc(db, "meetings", cancelEventId), { status: "cancelled", cancelReason: cancelReason.trim(), cancelledAt: Timestamp.now() })
-      toast.success(language === "ar" ? "تم إلغاء الاجتماع" : "Meeting cancelled")
+      toast.success(language === "ar" ? t("meetingCancelled") : "Meeting cancelled")
       setCancelDialogOpen(false)
       setCancelEventId(null)
       setCancelReason("")
       refreshEvents()
     } catch (err) {
-      toast.error(language === "ar" ? "حدث خطأ" : "Error cancelling meeting")
+      toast.error(language === "ar" ? t("errorOccurred") : "Error cancelling meeting")
     } finally { setIsCancelling(false) }
   }
 
   const handleRescheduleMeeting = async () => {
     if (!rescheduleEvent || !newDate || !newTime) return
-    if (!validateDate(newDate)) { toast.error(language === "ar" ? "لا يمكن تحديد تاريخ في الماضي" : "Cannot schedule in the past"); return }
-    if (!validateTime(newTime)) { toast.error(language === "ar" ? "الوقت يجب بين 8ص و8م" : "Time must be 8AM-8PM"); return }
+    if (!validateDate(newDate)) { toast.error(language === "ar" ? t("cannotScheduleInPast") : "Cannot schedule in the past"); return }
+    if (!validateTime(newTime)) { toast.error(language === "ar" ? t("timeMustBeBetween8") : "Time must be 8AM-8PM"); return }
     setIsRescheduling(true)
     try {
       const db = getFirebaseDb()
@@ -125,14 +125,14 @@ export default function SupervisorCalendar() {
       const [ry, rm, rd] = newDate.split("-").map(Number)
       const rescheduledDate = new Date(ry, rm - 1, rd, 12, 0, 0)
       await updateDoc(doc(db, "meetings", rescheduleEvent.id), { date: Timestamp.fromDate(rescheduledDate), time: newTime, status: "scheduled", rescheduledAt: Timestamp.now() })
-      toast.success(language === "ar" ? "تم تغيير وقت الاجتماع" : "Meeting rescheduled")
+      toast.success(language === "ar" ? t("meetingRescheduled") : "Meeting rescheduled")
       setRescheduleDialogOpen(false)
       setRescheduleEvent(null)
       setNewDate("")
       setNewTime("")
       refreshEvents()
     } catch (err) {
-      toast.error(language === "ar" ? "حدث خطأ" : "Error rescheduling")
+      toast.error(language === "ar" ? t("errorOccurred") : "Error rescheduling")
     } finally { setIsRescheduling(false) }
   }
 
@@ -326,7 +326,7 @@ export default function SupervisorCalendar() {
       refreshEvents()
     } catch (err) {
       console.error(err)
-      toast.error("حدث خطأ أثناء التحديث")
+      toast.error(t("errorBecomeInUpdating"))
     } finally {
       setIsMigrating(false)
     }
@@ -529,7 +529,7 @@ export default function SupervisorCalendar() {
                               <Clock className="w-4 h-4" />
                               {event.type === "meeting"
                                 ? (event.time ? formatTime(event.time) : "—")
-                                : (language === "ar" ? "آخر موعد للتسليم" : "Due date")}
+                                : (language === "ar" ? t("dueDateLabel") : "Due date")}
                               {event.duration && ` (${event.duration} ${t("minute")})`}
                             </div>
                             {event.location && (
@@ -565,7 +565,7 @@ export default function SupervisorCalendar() {
                                   }}
                                 >
                                   <Edit2 className="w-3.5 h-3.5" />
-                                  {language === "ar" ? "تغيير الوقت" : "Reschedule"}
+                                  {language === "ar" ? t("rescheduleLabel") : "Reschedule"}
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -578,7 +578,7 @@ export default function SupervisorCalendar() {
                                   }}
                                 >
                                   <XCircle className="w-3.5 h-3.5" />
-                                  {language === "ar" ? "إلغاء" : "Cancel"}
+                                  {language === "ar" ? t("cancel") : "Cancel"}
                                 </Button>
                               </div>
                             )}
@@ -598,18 +598,18 @@ export default function SupervisorCalendar() {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
-            <DialogTitle>{language === "ar" ? "إلغاء الاجتماع" : "Cancel Meeting"}</DialogTitle>
-            <DialogDescription>{language === "ar" ? "يرجى ذكر سبب الإلغاء" : "Please provide a reason"}</DialogDescription>
+            <DialogTitle>{language === "ar" ? t("cancelMeetingLabel") : "Cancel Meeting"}</DialogTitle>
+            <DialogDescription>{language === "ar" ? t("provideReasonForCancellation") : "Please provide a reason"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>{language === "ar" ? "سبب الإلغاء *" : "Cancellation Reason *"}</Label>
+              <Label>{language === "ar" ? t("cancellationReasonRequired") : "Cancellation Reason *"}</Label>
               <Textarea value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} placeholder={language === "ar" ? "اكتب سبب الإلغاء..." : "Write reason..."} rows={3} />
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setCancelDialogOpen(false)} className="flex-1 rounded-lg">{t("cancel")}</Button>
               <Button variant="destructive" onClick={handleCancelMeeting} className="flex-1 rounded-lg" disabled={isCancelling || !cancelReason.trim()}>
-                {isCancelling ? "..." : language === "ar" ? "تأكيد الإلغاء" : "Confirm Cancel"}
+                {isCancelling ? "..." : language === "ar" ? t("confirmCancel") : "Confirm Cancel"}
               </Button>
             </div>
           </div>
@@ -620,24 +620,24 @@ export default function SupervisorCalendar() {
       <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
         <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
-            <DialogTitle>{language === "ar" ? "تغيير وقت الاجتماع" : "Reschedule Meeting"}</DialogTitle>
+            <DialogTitle>{language === "ar" ? t("rescheduleMeeting") : "Reschedule Meeting"}</DialogTitle>
             <DialogDescription>{rescheduleEvent?.title}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{language === "ar" ? "التاريخ الجديد *" : "New Date *"}</Label>
+                <Label>{language === "ar" ? t("newDateRequired") : "New Date *"}</Label>
                 <Input type="date" value={newDate} min={getTodayDate()} onChange={(e) => setNewDate(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-2">
-                <Label>{language === "ar" ? "الوقت الجديد *" : "New Time *"}</Label>
+                <Label>{language === "ar" ? t("newTimeRequired") : "New Time *"}</Label>
                 <Input type="time" min="08:00" max="19:59" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="h-11" />
               </div>
             </div>
             <div className="flex gap-3">
               <Button variant="outline" onClick={() => setRescheduleDialogOpen(false)} className="flex-1 rounded-lg">{t("cancel")}</Button>
               <Button onClick={handleRescheduleMeeting} className="flex-1 rounded-lg" disabled={isRescheduling || !newDate || !newTime}>
-                {isRescheduling ? "..." : language === "ar" ? "تأكيد التغيير" : "Confirm"}
+                {isRescheduling ? "..." : language === "ar" ? t("confirmChange") : "Confirm"}
               </Button>
             </div>
           </div>

@@ -604,11 +604,11 @@ export default function CoordinatorProjects() {
         status: "completed",
         completedAt: Timestamp.now(),
       })
-      toast.success(language === "ar" ? "تم تحديد المشروع كمكتمل" : "Project marked as completed")
+      toast.success(language === "ar" ? t("projectMarkedCompleted") : "Project marked as completed")
       fetchProjects()
     } catch (error) {
       console.error("Error completing project:", error)
-      toast.error(language === "ar" ? "حدث خطأ" : "Error completing project")
+      toast.error(language === "ar" ? t("errorCompletingProject") : "Error completing project")
     }
   }
 
@@ -620,18 +620,18 @@ export default function CoordinatorProjects() {
         status: "active",
         archivedAt: null,
       })
-      toast.success(language === "ar" ? "تم استعادة المشروع بنجاح" : "Project restored successfully")
+      toast.success(language === "ar" ? t("projectRestoredSuccess") : "Project restored successfully")
       fetchProjects()
     } catch (error) {
       console.error("Error restoring project:", error)
-      toast.error(language === "ar" ? "حدث خطأ أثناء استعادة المشروع" : "Error restoring project")
+      toast.error(language === "ar" ? t("errorRestoringProjec") : "Error restoring project")
     }
   }
 
   const handleUpdateSupervisors = async () => {
     if (!db || !supervisorProject) return
     if (!newSupervisorId) {
-      toast.error(language === "ar" ? "يرجى اختيار مشرف رئيسي" : "Please select a primary supervisor")
+      toast.error(language === "ar" ? t("pleaseSelectPrimarySupervisor") : "Please select a primary supervisor")
       return
     }
     setIsUpdatingSupervisors(true)
@@ -675,12 +675,12 @@ export default function CoordinatorProjects() {
         })
       )
 
-      toast.success(language === "ar" ? "تم تحديث المشرفين بنجاح" : "Supervisors updated successfully")
+      toast.success(language === "ar" ? t("supervisorsUpdatedSuccess") : "Supervisors updated successfully")
       setIsSupervisorDialogOpen(false)
       setSupervisorProject(null)
     } catch (error) {
       console.error("Error updating supervisors:", error)
-      toast.error(language === "ar" ? "حدث خطأ أثناء تحديث المشرفين" : "Error updating supervisors")
+      toast.error(language === "ar" ? t("errorUpdatingSupervisors") : "Error updating supervisors")
     } finally {
       setIsUpdatingSupervisors(false)
     }
@@ -968,24 +968,24 @@ export default function CoordinatorProjects() {
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">{language === "ar" ? "مدة المشروع" : "Duration"}</span>
+            <span className="text-muted-foreground">{language === "ar" ? t("durationLabel") : "Duration"}</span>
             <span className="font-medium">
               {(project.duration === "two_semesters" || project.duration === "two-courses")
-                ? (language === "ar" ? "كورسين" : "Two Semesters")
+                ? (language === "ar" ? t("twoSemestersLabel") : "Two Semesters")
                 : (project.duration === "one_semester" || project.duration === "one-course")
-                ? (language === "ar" ? "كورس واحد" : "One Semester")
-                : project.duration || (language === "ar" ? "غير محدد" : "Not set")}
+                ? (language === "ar" ? t("oneSemesterLabel") : "One Semester")
+                : project.duration || (language === "ar" ? t("notSetLabel") : "Not set")}
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">{language === "ar" ? "نوع المشروع" : "Project Type"}</span>
+            <span className="text-muted-foreground">{language === "ar" ? t("projectTypeLabel") : "Project Type"}</span>
             <span className="font-medium">
-              {project.projectType === "system" || !project.projectType ? (language === "ar" ? "نظام" : "System")
-                : project.projectType === "research" ? (language === "ar" ? "بحث" : "Research")
-                : project.projectType === "cybersecurity" ? (language === "ar" ? "الأمن السيبراني" : "Cybersecurity")
-                : project.projectType === "entrepreneurship" ? (language === "ar" ? "ريادة الأعمال" : "Entrepreneurship")
-                : (language === "ar" ? "نظام" : "System")}
+              {project.projectType === "system" || !project.projectType ? (language === "ar" ? t("systemLabel") : "System")
+                : project.projectType === "research" ? (language === "ar" ? t("researchLabel") : "Research")
+                : project.projectType === "cybersecurity" ? (language === "ar" ? t("cybersecurityLabel") : "Cybersecurity")
+                : project.projectType === "entrepreneurship" ? (language === "ar" ? t("entrepreneurshipLabel") : "Entrepreneurship")
+                : (language === "ar" ? t("systemLabel") : "System")}
             </span>
           </div>
 
@@ -995,12 +995,12 @@ export default function CoordinatorProjects() {
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-muted-foreground">{language === "ar" ? "المشرف الثانوي:" : "Co-Supervisor:"}</span>
+            <span className="text-muted-foreground">{language === "ar" ? t("coSupervisorColon") : "Co-Supervisor:"}</span>
             <span>{
               project.coSupervisorName ||
               (project.supervisors?.find((s: any) => s.role === "secondary")?.name) ||
               (project.supervisorIds?.length > 1 ? project.supervisors?.[1]?.name : null) ||
-              (language === "ar" ? "لا يوجد" : "None")
+              (language === "ar" ? t("noneLabel") : "None")
             }</span>
           </div>
 
@@ -1011,7 +1011,7 @@ export default function CoordinatorProjects() {
 
           {project.studentName && (
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{language === "ar" ? "القائد:" : "Leader:"}</span>
+              <span className="text-muted-foreground">{language === "ar" ? t("leaderColon") : "Leader:"}</span>
               <span>{project.studentName}</span>
             </div>
           )}
@@ -1038,7 +1038,7 @@ export default function CoordinatorProjects() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="font-semibold mb-2">{language === "ar" ? "الوصف:" : "Description:"}</h4>
+                    <h4 className="font-semibold mb-2">{language === "ar" ? t("descriptionColon") : "Description:"}</h4>
                     <p className="text-sm text-muted-foreground">{selectedProject?.description}</p>
                   </div>
 
@@ -1121,7 +1121,7 @@ export default function CoordinatorProjects() {
               }}
             >
               <Edit className="w-4 h-4 ml-2" />
-              {language === "ar" ? "تغيير المشرفين" : "Change Supervisors"}
+              {language === "ar" ? t("changeSupervisors") : "Change Supervisors"}
             </Button>
 
             {project.status === "active" && (
@@ -1144,7 +1144,7 @@ export default function CoordinatorProjects() {
                 onClick={() => handleCompleteProject(project.id)}
               >
                 <Check className="w-4 h-4 ml-2" />
-                {language === "ar" ? "تحديد كمكتمل" : "Mark Complete"}
+                {language === "ar" ? t("markComplete") : "Mark Complete"}
               </Button>
             )}
 
@@ -1168,7 +1168,7 @@ export default function CoordinatorProjects() {
                 onClick={() => handleRestoreProject(project.id)}
               >
                 <ArchiveIcon className="w-4 h-4 ml-2" />
-                {language === "ar" ? "إعادة من الأرشيف" : "Restore"}
+                {language === "ar" ? t("restoreLabel") : "Restore"}
               </Button>
             )}
 
@@ -1320,16 +1320,16 @@ export default function CoordinatorProjects() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>{language === "ar" ? "المشرف الثانوي (اختياري)" : "Co-Supervisor (Optional)"}</Label>
+                  <Label>{language === "ar" ? t("coSupervisorOptional") : "Co-Supervisor (Optional)"}</Label>
                   <Select
                     value={newProject.coSupervisorId || "none"}
                     onValueChange={(value) => setNewProject({ ...newProject, coSupervisorId: value === "none" ? "" : value })}
                   >
                     <SelectTrigger className="rounded-lg">
-                      <SelectValue placeholder={language === "ar" ? "اختر المشرف الثانوي" : "Select co-supervisor"} />
+                      <SelectValue placeholder={language === "ar" ? t("selectCoSupervisor") : "Select co-supervisor"} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg">
-                      <SelectItem value="none">{language === "ar" ? "بدون مشرف ثانوي" : "No co-supervisor"}</SelectItem>
+                      <SelectItem value="none">{language === "ar" ? t("noCoSupervisor") : "No co-supervisor"}</SelectItem>
                       {supervisors
                         .filter((s) => s.id !== newProject.supervisorId)
                         .map((supervisor) => (
@@ -1362,33 +1362,33 @@ export default function CoordinatorProjects() {
               </div>
 
               <div className="space-y-2">
-                <Label>{language === "ar" ? "مدة المشروع *" : "Project Duration *"}</Label>
+                <Label>{language === "ar" ? t("projectDurationRequired") : "Project Duration *"}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setNewProject({ ...newProject, duration: "one_semester" })}
                     className={`h-12 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-0.5 ${newProject.duration === "one_semester" || !newProject.duration ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"}`}
                   >
-                    <span>{language === "ar" ? "فصل دراسي واحد" : "One Semester"}</span>
+                    <span>{language === "ar" ? t("oneSemester") : "One Semester"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setNewProject({ ...newProject, duration: "two_semesters" })}
                     className={`h-12 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-0.5 ${newProject.duration === "two_semesters" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"}`}
                   >
-                    <span>{language === "ar" ? "فصلين دراسيين" : "Two Semesters"}</span>
+                    <span>{language === "ar" ? t("twoSemesters") : "Two Semesters"}</span>
                   </button>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label>{language === "ar" ? "نوع المشروع *" : "Project Type *"}</Label>
+                <Label>{language === "ar" ? t("projectTypeRequired") : "Project Type *"}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { value: "system", labelAr: "نظام", labelEn: "System" },
-                    { value: "research", labelAr: "بحث", labelEn: "Research" },
-                    { value: "cybersecurity", labelAr: "الأمن السيبراني", labelEn: "Cybersecurity" },
-                    { value: "entrepreneurship", labelAr: "ريادة الأعمال", labelEn: "Entrepreneurship" },
+                    { value: "system", labelAr: t("systemLabel"), labelEn: "System" },
+                    { value: "research", labelAr: t("researchLabel"), labelEn: "Research" },
+                    { value: "cybersecurity", labelAr: t("cybersecurityLabel"), labelEn: "Cybersecurity" },
+                    { value: "entrepreneurship", labelAr: t("entrepreneurshipLabel"), labelEn: "Entrepreneurship" },
                   ].map((type) => (
                     <button
                       key={type.value}
@@ -1514,7 +1514,7 @@ export default function CoordinatorProjects() {
             <TabsContent value="pending" className="grid gap-6 md:grid-cols-2">
               {pendingProjects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع بانتظار الموافقة" : "No projects awaiting approval"}
+                  {language === "ar" ? t("noPendingProjects") : "No projects awaiting approval"}
                 </p>
               ) : (
                 pendingProjects.map((project) => <ProjectCard key={project.id} project={project} />)
@@ -1524,7 +1524,7 @@ export default function CoordinatorProjects() {
             <TabsContent value="active" className="grid gap-6 md:grid-cols-2">
               {activeProjects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع نشطة" : "No active projects"}
+                  {language === "ar" ? t("noActiveProjects") : "No active projects"}
                 </p>
               ) : (
                 activeProjects.map((project) => <ProjectCard key={project.id} project={project} />)
@@ -1534,7 +1534,7 @@ export default function CoordinatorProjects() {
             <TabsContent value="completed" className="grid gap-6 md:grid-cols-2">
               {completedProjects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع مكتملة" : "No completed projects"}
+                  {language === "ar" ? t("noCompletedProjects") : "No completed projects"}
                 </p>
               ) : (
                 completedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
@@ -1544,7 +1544,7 @@ export default function CoordinatorProjects() {
             <TabsContent value="rejected" className="grid gap-6 md:grid-cols-2">
               {rejectedProjects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع مرفوضة" : "No rejected projects"}
+                  {language === "ar" ? t("noRejectedProjects") : "No rejected projects"}
                 </p>
               ) : (
                 rejectedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
@@ -1554,7 +1554,7 @@ export default function CoordinatorProjects() {
             <TabsContent value="suspended" className="grid gap-6 md:grid-cols-2">
               {suspendedProjects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع موقوفة" : "No stopped projects"}
+                  {language === "ar" ? t("noStoppedProjects") : "No stopped projects"}
                 </p>
               ) : (
                 suspendedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
@@ -1564,7 +1564,7 @@ export default function CoordinatorProjects() {
             <TabsContent value="archived" className="grid gap-6 md:grid-cols-2">
               {archivedProjects.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8 col-span-2">
-                  {language === "ar" ? "لا توجد مشاريع مؤرشفة" : "No archived projects"}
+                  {language === "ar" ? t("noArchivedProjects") : "No archived projects"}
                 </p>
               ) : (
                 archivedProjects.map((project) => <ProjectCard key={project.id} project={project} />)
@@ -1577,7 +1577,7 @@ export default function CoordinatorProjects() {
         <Dialog open={isTeamManagementOpen} onOpenChange={setIsTeamManagementOpen}>
           <DialogContent className="max-w-2xl rounded-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{language === "ar" ? "إدارة فريق المشروع" : "Project Team Management"}</DialogTitle>
+              <DialogTitle>{language === "ar" ? t("projectTeamManagement") : "Project Team Management"}</DialogTitle>
               <DialogDescription>
                 {language === "ar"
                   ? `إضافة أو حذف طلاب من المشروع: ${selectedProject?.title || ""}`
@@ -1587,11 +1587,11 @@ export default function CoordinatorProjects() {
 
             <div className="space-y-6">
               <div className="space-y-4">
-                <h4 className="font-semibold">{language === "ar" ? "إضافة طالب جديد" : "Add New Student"}</h4>
+                <h4 className="font-semibold">{language === "ar" ? t("addNewStudentLabel") : "Add New Student"}</h4>
                 <div className="flex gap-2">
                   <Select value={selectedStudentToAdd} onValueChange={setSelectedStudentToAdd}>
                     <SelectTrigger className="flex-1 rounded-lg">
-                      <SelectValue placeholder={language === "ar" ? "اختر طالباً" : "Select a student"} />
+                      <SelectValue placeholder={language === "ar" ? t("selectAStudent") : "Select a student"} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg">
                       {students
@@ -1618,7 +1618,7 @@ export default function CoordinatorProjects() {
                 </h4>
                 {projectTeamMembers.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-4">
-                    {language === "ar" ? "لا يوجد طلاب في هذا المشروع" : "No students in this project"}
+                    {language === "ar" ? t("noStudentsInProject") : "No students in this project"}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -1660,7 +1660,7 @@ export default function CoordinatorProjects() {
           <DialogContent className="max-w-2xl rounded-xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{t("editProject")}</DialogTitle>
-              <DialogDescription>{language === "ar" ? "قم بتحديث بيانات المشروع" : "Update project information"}</DialogDescription>
+              <DialogDescription>{language === "ar" ? t("updateProjectInfo") : "Update project information"}</DialogDescription>
             </DialogHeader>
 
             <div className="space-y-4">
@@ -1670,7 +1670,7 @@ export default function CoordinatorProjects() {
                   id="edit-title"
                   value={selectedProject?.title || ""}
                   onChange={(e) => setSelectedProject({ ...selectedProject, title: e.target.value })}
-                  placeholder={language === "ar" ? "أدخل عنوان المشروع" : "Enter project title"}
+                  placeholder={language === "ar" ? t("enterProjectTitlePlaceholder") : "Enter project title"}
                   className="rounded-lg"
                 />
               </div>
@@ -1681,7 +1681,7 @@ export default function CoordinatorProjects() {
                   id="edit-description"
                   value={selectedProject?.description || selectedProject?.problemStatement || ""}
                   onChange={(e) => setSelectedProject({ ...selectedProject, description: e.target.value })}
-                  placeholder={language === "ar" ? "أدخل وصف المشروع" : "Enter project description"}
+                  placeholder={language === "ar" ? t("enterProjectDescPlaceholder") : "Enter project description"}
                   rows={4}
                   className="rounded-lg"
                 />
@@ -1689,7 +1689,7 @@ export default function CoordinatorProjects() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-startDate">{language === "ar" ? "تاريخ ��داية المشروع" : "Start Date"}</Label>
+                  <Label htmlFor="edit-startDate">{language === "ar" ? t("projectStartDateLabel") : "Start Date"}</Label>
                   <Input
                     id="edit-startDate"
                     type="date"
@@ -1706,7 +1706,7 @@ export default function CoordinatorProjects() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-endDate">{language === "ar" ? "تاريخ انتهاء المشروع" : "End Date"}</Label>
+                  <Label htmlFor="edit-endDate">{language === "ar" ? t("projectEndDateLabel") : "End Date"}</Label>
                   <Input
                     id="edit-endDate"
                     type="date"
@@ -1731,7 +1731,7 @@ export default function CoordinatorProjects() {
                     onValueChange={(value) => setSelectedProject({ ...selectedProject, supervisorId: value })}
                   >
                     <SelectTrigger className="rounded-lg">
-                      <SelectValue placeholder={language === "ar" ? "اختر المشرف" : "Select supervisor"} />
+                      <SelectValue placeholder={language === "ar" ? t("selectSupervisorLabel") : "Select supervisor"} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg">
                       {supervisors.map((supervisor) => (
@@ -1744,16 +1744,16 @@ export default function CoordinatorProjects() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-student">{language === "ar" ? "الطالب (اختياري)" : "Student (Optional)"}</Label>
+                  <Label htmlFor="edit-student">{language === "ar" ? t("studentOptional") : "Student (Optional)"}</Label>
                   <Select
                     value={selectedProject?.studentId || "none"}
                     onValueChange={(value) => setSelectedProject({ ...selectedProject, studentId: value })}
                   >
                     <SelectTrigger className="rounded-lg">
-                      <SelectValue placeholder={language === "ar" ? "اختر الطالب" : "Select student"} />
+                      <SelectValue placeholder={language === "ar" ? t("selectStudentLabel") : "Select student"} />
                     </SelectTrigger>
                     <SelectContent className="rounded-lg">
-                      <SelectItem value="none">{language === "ar" ? "بدون طالب" : "No student"}</SelectItem>
+                      <SelectItem value="none">{language === "ar" ? t("noStudentLabel") : "No student"}</SelectItem>
                       {students.map((student) => (
                         <SelectItem key={student.id} value={student.id}>
                           {student.name}
@@ -1765,16 +1765,16 @@ export default function CoordinatorProjects() {
               </div>
 
               <div className="space-y-2">
-                <Label>{language === "ar" ? "المشرف الثانوي (اختياري)" : "Co-Supervisor (Optional)"}</Label>
+                <Label>{language === "ar" ? t("coSupervisorOptional") : "Co-Supervisor (Optional)"}</Label>
                 <Select
                   value={selectedProject?.coSupervisorId || "none"}
                   onValueChange={(value) => setSelectedProject({ ...selectedProject, coSupervisorId: value === "none" ? null : value })}
                 >
                   <SelectTrigger className="rounded-lg">
-                    <SelectValue placeholder={language === "ar" ? "اختر المشرف الثانوي" : "Select co-supervisor"} />
+                    <SelectValue placeholder={language === "ar" ? t("selectCoSupervisor") : "Select co-supervisor"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg">
-                    <SelectItem value="none">{language === "ar" ? "بدون مشرف ثانوي" : "No co-supervisor"}</SelectItem>
+                    <SelectItem value="none">{language === "ar" ? t("noCoSupervisor") : "No co-supervisor"}</SelectItem>
                     {supervisors
                       .filter((s) => s.id !== selectedProject?.supervisorId)
                       .map((supervisor) => (
@@ -1793,7 +1793,7 @@ export default function CoordinatorProjects() {
                   onValueChange={(value) => setSelectedProject({ ...selectedProject, department: value })}
                 >
                   <SelectTrigger className="rounded-lg">
-                    <SelectValue placeholder={language === "ar" ? "اختر القسم" : "Select department"} />
+                    <SelectValue placeholder={language === "ar" ? t("selectDepartmentLabel") : "Select department"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg">
                     {departments.map((dept) => (
@@ -1806,34 +1806,34 @@ export default function CoordinatorProjects() {
               </div>
 
               <div className="space-y-2">
-                <Label>{language === "ar" ? "مدة المشروع *" : "Project Duration *"}</Label>
+                <Label>{language === "ar" ? t("projectDurationRequired") : "Project Duration *"}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
                     onClick={() => setSelectedProject({ ...selectedProject, duration: "one_semester" })}
                     className={`h-12 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-0.5 ${!selectedProject?.duration || selectedProject?.duration === "one_semester" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"}`}
                   >
-                    <span>{language === "ar" ? "فصل دراسي واحد" : "One Semester"}</span>
+                    <span>{language === "ar" ? t("oneSemesterLabel") : "One Semester"}</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => setSelectedProject({ ...selectedProject, duration: "two_semesters" })}
                     className={`h-12 rounded-lg border-2 text-sm font-medium transition-all flex flex-col items-center justify-center gap-0.5 ${selectedProject?.duration === "two_semesters" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary/50"}`}
                   >
-                    <span>{language === "ar" ? "فصلين دراسيين" : "Two Semesters"}</span>
+                    <span>{language === "ar" ? t("twoSemestersLabel") : "Two Semesters"}</span>
                   </button>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-                <Label>{language === "ar" ? "نوع المشروع *" : "Project Type *"}</Label>
+                <Label>{language === "ar" ? t("projectTypeRequired") : "Project Type *"}</Label>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { value: "system", labelAr: "نظام", labelEn: "System" },
-                    { value: "research", labelAr: "بحث", labelEn: "Research" },
-                    { value: "cybersecurity", labelAr: "الأمن السيبراني", labelEn: "Cybersecurity" },
-                    { value: "entrepreneurship", labelAr: "ريادة الأعمال", labelEn: "Entrepreneurship" },
+                    { value: "system", labelAr: t("systemLabel"), labelEn: "System" },
+                    { value: "research", labelAr: t("researchLabel"), labelEn: "Research" },
+                    { value: "cybersecurity", labelAr: t("cybersecurityLabel"), labelEn: "Cybersecurity" },
+                    { value: "entrepreneurship", labelAr: t("entrepreneurshipLabel"), labelEn: "Entrepreneurship" },
                   ].map((type) => (
                     <button
                       key={type.value}
@@ -1852,7 +1852,7 @@ export default function CoordinatorProjects() {
                 {t("cancel")}
               </Button>
               <Button onClick={handleUpdateProject} className="rounded-lg" disabled={isUpdating}>
-                {isUpdating ? t("loading") : language === "ar" ? "حفظ التغييرات" : "Save Changes"}
+                {isUpdating ? t("loading") : language === "ar" ? t("saveChangesLabel") : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1874,7 +1874,7 @@ export default function CoordinatorProjects() {
                 {t("cancel")}
               </Button>
               <Button variant="destructive" onClick={handleDeleteProject} className="rounded-lg">
-                {language === "ar" ? "حذف المشروع" : "Delete Project"}
+                {language === "ar" ? t("deleteProjectLabel") : "Delete Project"}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1888,7 +1888,7 @@ export default function CoordinatorProjects() {
         }}>
           <DialogContent className="max-w-lg rounded-xl">
             <DialogHeader>
-              <DialogTitle>{language === "ar" ? "تغيير المشرفين" : "Change Supervisors"}</DialogTitle>
+              <DialogTitle>{language === "ar" ? t("changeSupervisors") : "Change Supervisors"}</DialogTitle>
               <DialogDescription>
                 {language === "ar"
                   ? `تغيير مشرفي المشروع: ${supervisorProject?.title || ""}`
@@ -1898,10 +1898,10 @@ export default function CoordinatorProjects() {
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label>{language === "ar" ? "المشرف الرئيسي *" : "Primary Supervisor *"}</Label>
+                <Label>{language === "ar" ? t("primarySupervisorRequired") : "Primary Supervisor *"}</Label>
                 <Select value={newSupervisorId} onValueChange={setNewSupervisorId}>
                   <SelectTrigger className="rounded-lg">
-                    <SelectValue placeholder={language === "ar" ? "اختر المشرف الرئيسي" : "Select primary supervisor"} />
+                    <SelectValue placeholder={language === "ar" ? t("selectPrimarySupervisor") : "Select primary supervisor"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg">
                     {supervisors.map((s) => (
@@ -1912,13 +1912,13 @@ export default function CoordinatorProjects() {
               </div>
 
               <div className="space-y-2">
-                <Label>{language === "ar" ? "المشرف الثانوي (اختياري)" : "Co-Supervisor (Optional)"}</Label>
+                <Label>{language === "ar" ? t("coSupervisorOptional") : "Co-Supervisor (Optional)"}</Label>
                 <Select value={newCoSupervisorId || "none"} onValueChange={setNewCoSupervisorId}>
                   <SelectTrigger className="rounded-lg">
-                    <SelectValue placeholder={language === "ar" ? "اختر المشرف الثانوي" : "Select co-supervisor"} />
+                    <SelectValue placeholder={language === "ar" ? t("selectCoSupervisor") : "Select co-supervisor"} />
                   </SelectTrigger>
                   <SelectContent className="rounded-lg">
-                    <SelectItem value="none">{language === "ar" ? "بدون مشرف ثانوي" : "No co-supervisor"}</SelectItem>
+                    <SelectItem value="none">{language === "ar" ? t("noCoSupervisor") : "No co-supervisor"}</SelectItem>
                     {supervisors
                       .filter((s) => s.id !== newSupervisorId)
                       .map((s) => (
@@ -1936,7 +1936,7 @@ export default function CoordinatorProjects() {
                 disabled={isUpdatingSupervisors}
                 className="rounded-lg"
               >
-                {language === "ar" ? "إلغاء" : "Cancel"}
+                {language === "ar" ? t("cancel") : "Cancel"}
               </Button>
               <Button
                 onClick={handleUpdateSupervisors}
@@ -1944,8 +1944,8 @@ export default function CoordinatorProjects() {
                 className="rounded-lg"
               >
                 {isUpdatingSupervisors
-                  ? (language === "ar" ? "جارٍ الحفظ..." : "Saving...")
-                  : (language === "ar" ? "حفظ التغييرات" : "Save Changes")}
+                  ? (language === "ar" ? t("savingLabel") : "Saving...")
+                  : (language === "ar" ? t("saveChangesLabel") : "Save Changes")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1961,7 +1961,7 @@ export default function CoordinatorProjects() {
           <DialogContent className="rounded-xl max-w-md">
             <DialogHeader>
               <DialogTitle className="text-destructive">
-                {language === "ar" ? "⚠️ تأكيد حذف الطالب" : "⚠️ Confirm Remove Student"}
+                {language === "ar" ? t("confirmRemoveStudent") : "⚠️ Confirm Remove Student"}
               </DialogTitle>
               <DialogDescription className="text-base pt-2">
                 {language === "ar"
@@ -1970,14 +1970,14 @@ export default function CoordinatorProjects() {
               </DialogDescription>
             </DialogHeader>
             <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-sm text-destructive space-y-1">
-              <p className="font-semibold">{language === "ar" ? "سيتم حذف ما يلي نهائياً:" : "The following will be permanently deleted:"}</p>
+              <p className="font-semibold">{language === "ar" ? t("permanentlyDeleted") : "The following will be permanently deleted:"}</p>
               <ul className="list-disc list-inside space-y-0.5 text-destructive/80">
-                <li>{language === "ar" ? "جميع مهام الطالب في هذا المشروع" : "All student tasks in this project"}</li>
-                <li>{language === "ar" ? "جميع الاجتماعات المرتبطة بالطالب" : "All meetings related to the student"}</li>
-                <li>{language === "ar" ? "جميع طلبات الاجتماعات" : "All meeting requests"}</li>
-                <li>{language === "ar" ? "جميع الإشعارات الخاصة بالطالب" : "All student notifications"}</li>
+                <li>{language === "ar" ? t("allStudentTasks") : "All student tasks in this project"}</li>
+                <li>{language === "ar" ? t("allStudentMeetings") : "All meetings related to the student"}</li>
+                <li>{language === "ar" ? t("allMeetingRequests") : "All meeting requests"}</li>
+                <li>{language === "ar" ? t("allStudentNotifications") : "All student notifications"}</li>
               </ul>
-              <p className="font-semibold pt-1">{language === "ar" ? "لا يمكن التراجع عن هذا الإجراء!" : "This action cannot be undone!"}</p>
+              <p className="font-semibold pt-1">{language === "ar" ? t("cannotBeUndone") : "This action cannot be undone!"}</p>
             </div>
             <DialogFooter className="gap-2">
               <Button
@@ -1986,7 +1986,7 @@ export default function CoordinatorProjects() {
                 disabled={isRemovingStudent}
                 className="rounded-lg"
               >
-                {language === "ar" ? "إلغاء" : "Cancel"}
+                {language === "ar" ? t("cancel") : "Cancel"}
               </Button>
               <Button
                 variant="destructive"
@@ -1995,8 +1995,8 @@ export default function CoordinatorProjects() {
                 className="rounded-lg"
               >
                 {isRemovingStudent
-                  ? (language === "ar" ? "جارٍ الحذف..." : "Removing...")
-                  : (language === "ar" ? "نعم، احذف الطالب" : "Yes, Remove Student")}
+                  ? (language === "ar" ? t("removingLabel") : "Removing...")
+                  : (language === "ar" ? t("yesRemoveStudent") : "Yes, Remove Student")}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -168,12 +168,12 @@ export default function SupervisorProjectIdeas() {
     setIsDeleting(true)
     try {
       await deleteDoc(doc(getFirebaseDb(), "projectIdeas", deletingProject.id))
-      toast.success(language === "ar" ? "تم حذف الفكرة" : "Idea deleted")
+      toast.success(language === "ar" ? t("ideaDeleted") : "Idea deleted")
       setIsDeleteDialogOpen(false)
       setDeletingProject(null)
     } catch (err) {
       console.error(err)
-      toast.error(language === "ar" ? "حدث خطأ أثناء الحذف" : "Error deleting idea")
+      toast.error(language === "ar" ? t("errorDeletingIdea") : "Error deleting idea")
     } finally {
       setIsDeleting(false)
     }
@@ -202,12 +202,12 @@ export default function SupervisorProjectIdeas() {
         departmentNameEn: dep.nameEn ?? "",
         updatedAt: Timestamp.now(),
       })
-      toast.success(language === "ar" ? "تم تعديل الفكرة" : "Idea updated")
+      toast.success(language === "ar" ? t("ideaUpdated") : "Idea updated")
       setIsEditDialogOpen(false)
       setEditingProject(null)
     } catch (err) {
       console.error(err)
-      toast.error(language === "ar" ? "حدث خطأ أثناء التعديل" : "Error updating idea")
+      toast.error(language === "ar" ? t("errorUpdatingIdea") : "Error updating idea")
     } finally {
       setIsUpdating(false)
     }
@@ -323,19 +323,19 @@ export default function SupervisorProjectIdeas() {
             <div className="flex items-center justify-between">
               <span className="text-muted-foreground">{t("projectType")}:</span>
               <span className="font-medium">
-                {project.projectType === "system" ? "نظام"
-                  : project.projectType === "research" ? "بحث"
-                  : project.projectType === "entrepreneurship" ? "ريادة أعمال"
-                  : project.projectType === "cybersecurity" ? "أمن معلومات"
-                  : project.projectType === "one-course" ? "كورس واحد"
-                  : project.projectType === "two-courses" ? "كورسين"
+                {project.projectType === "system" ? t("systemLabel")
+                  : project.projectType === "research" ? t("researchLabel")
+                  : project.projectType === "entrepreneurship" ? t("business")
+                  : project.projectType === "cybersecurity" ? t("dataSecurity")
+                  : project.projectType === "one-course" ? t("oneSemesterLabel")
+                  : project.projectType === "two-courses" ? t("twoSemestersLabel")
                   : project.projectType || "—"}
               </span>
             </div>
 
             {project.duration && (
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">مدة المشروع:</span>
+                <span className="text-muted-foreground">{t("durationLabel")}:</span>
                 <span className="font-medium">
                   {project.duration === "one-course" || project.duration === "one_semester" ? "كورس واحد"
                     : project.duration === "two-courses" || project.duration === "two_semesters" ? "كورسين"
@@ -423,7 +423,7 @@ export default function SupervisorProjectIdeas() {
               <div className="flex items-start gap-2 p-3 bg-destructive/10 rounded-lg">
                 <AlertCircle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-destructive">سبب الرفض:</p>
+                  <p className="text-sm font-medium text-destructive">{t("rejectionReason")}:</p>
                   <p className="text-sm text-muted-foreground mt-1">{project.rejectionReason}</p>
                 </div>
               </div>
@@ -646,7 +646,7 @@ export default function SupervisorProjectIdeas() {
           <DialogHeader>
             <DialogTitle className="text-xl flex items-center gap-2">
               <Pencil className="w-5 h-5 text-primary" />
-              {language === "ar" ? "تعديل الفكرة" : "Edit Idea"}
+              {language === "ar" ? t("editIdea") : "Edit Idea"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
@@ -697,7 +697,7 @@ export default function SupervisorProjectIdeas() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)} className="rounded-lg">{t("cancel")}</Button>
             <Button onClick={handleEditIdea} disabled={isUpdating} className="rounded-lg">
-              {isUpdating ? "..." : language === "ar" ? "حفظ التعديلات" : "Save Changes"}
+              {isUpdating ? "..." : language === "ar" ? t("saveEdit") : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -709,17 +709,17 @@ export default function SupervisorProjectIdeas() {
           <DialogHeader>
             <DialogTitle className="text-xl text-destructive flex items-center gap-2">
               <Trash2 className="w-5 h-5" />
-              {language === "ar" ? "حذف الفكرة" : "Delete Idea"}
+              {language === "ar" ? t("deleteIdea") : "Delete Idea"}
             </DialogTitle>
             <DialogDescription>
-              {language === "ar" ? "هل أنت متأكد من حذف هذه الفكرة؟ لا يمكن التراجع." : "Are you sure you want to delete this idea? This cannot be undone."}
+              {language === "ar" ? t("confirmDeleteIdea") : "Are you sure you want to delete this idea? This cannot be undone."}
             </DialogDescription>
           </DialogHeader>
           <p className="text-sm font-medium px-1">{deletingProject?.title}</p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="rounded-lg">{t("cancel")}</Button>
             <Button variant="destructive" onClick={handleDeleteIdea} disabled={isDeleting} className="rounded-lg">
-              {isDeleting ? "..." : language === "ar" ? "تأكيد الحذف" : "Delete"}
+              {isDeleting ? "..." : language === "ar" ? t("confirmDelet") : "Delete"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -790,12 +790,12 @@ export default function SupervisorProjectIdeas() {
 
               {selectedProject?.duration && (
                 <div className="p-4 bg-muted/50 rounded-lg">
-                  <p className="text-sm text-muted-foreground mb-1">مدة المشروع</p>
+                  <p className="text-sm text-muted-foreground mb-1">{t("durationLabel")}</p>
                   <p className="font-semibold">
                     {selectedProject.duration === "one-course" || selectedProject.duration === "one_semester"
-                      ? "كورس واحد (فصل دراسي واحد)"
+                      ? t("oneC")
                       : selectedProject.duration === "two-courses" || selectedProject.duration === "two_semesters"
-                      ? "كورسين (فصلين دراسيين)"
+                      ? t("twoC")
                       : selectedProject.duration}
                   </p>
                 </div>

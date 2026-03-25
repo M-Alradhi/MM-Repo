@@ -302,7 +302,7 @@ export default function SupervisorMeetings() {
       }
 
       if (!validateDate(formData.date)) {
-        toast.error(language === "ar" ? "لا يمكن تحديد تاريخ في الماضي" : "Cannot schedule a meeting in the past")
+        toast.error(language === "ar" ? t("cannotScheduleInPast") : "Cannot schedule a meeting in the past")
         return
       }
 
@@ -510,14 +510,14 @@ export default function SupervisorMeetings() {
         cancelReason: cancelReason.trim(),
         cancelledAt: Timestamp.now(),
       })
-      toast.success(language === "ar" ? "تم إلغاء الاجتماع" : "Meeting cancelled")
+      toast.success(language === "ar" ? t("meetingCancelled") : "Meeting cancelled")
       setCancelDialogOpen(false)
       setCancelMeetingId(null)
       setCancelReason("")
       fetchProjectsAndStudents()
     } catch (err) {
       console.error(err)
-      toast.error(language === "ar" ? "حدث خطأ أثناء الإلغاء" : "Error cancelling meeting")
+      toast.error(language === "ar" ? t("errorCancellingMeeting") : "Error cancelling meeting")
     } finally {
       setIsCancelling(false)
     }
@@ -526,11 +526,11 @@ export default function SupervisorMeetings() {
   const handleRescheduleMeeting = async () => {
     if (!rescheduleMeeting || !newDate || !newTime) return
     if (!validateDate(newDate)) {
-      toast.error(language === "ar" ? "لا يمكن تحديد تاريخ في الماضي" : "Cannot schedule in the past")
+      toast.error(language === "ar" ? t("cannotScheduleInPast") : "Cannot schedule in the past")
       return
     }
     if (!validateTime(newTime)) {
-      toast.error(language === "ar" ? "الوقت يجب أن يكون بين 8 صباحاً و8 مساءً" : "Time must be between 8AM and 8PM")
+      toast.error(language === "ar" ?  t("timeMustBeBetween8") : "Time must be between 8AM and 8PM")
       return
     }
     setIsRescheduling(true)
@@ -547,7 +547,7 @@ export default function SupervisorMeetings() {
         status: isRequest ? "approved" : "scheduled",
         rescheduledAt: Timestamp.now(),
       })
-      toast.success(language === "ar" ? "تم تغيير وقت الاجتماع" : "Meeting rescheduled")
+      toast.success(language === "ar" ? t("meetingRescheduled")  : "Meeting rescheduled")
       setRescheduleDialogOpen(false)
       setRescheduleMeeting(null)
       setNewDate("")
@@ -555,7 +555,7 @@ export default function SupervisorMeetings() {
       fetchProjectsAndStudents()
     } catch (err) {
       console.error(err)
-      toast.error(language === "ar" ? "حدث خطأ أثناء تغيير الوقت" : "Error rescheduling meeting")
+      toast.error(language === "ar" ? t("errorReschedulingMeeting") : "Error rescheduling meeting")
     } finally {
       setIsRescheduling(false)
     }
@@ -837,7 +837,7 @@ export default function SupervisorMeetings() {
                             }}
                           >
                             <Edit2 className="w-4 h-4" />
-                            {language === "ar" ? "تغيير الوقت" : "Reschedule"}
+                            {language === "ar" ? t("rescheduleLabel") : "Reschedule"}
                           </Button>
                           <Button
                             variant="outline"
@@ -850,7 +850,7 @@ export default function SupervisorMeetings() {
                             }}
                           >
                             <XCircle className="w-4 h-4" />
-                            {language === "ar" ? "إلغاء" : "Cancel"}
+                            {language === "ar" ? t("cancel") : "Cancel"}
                           </Button>
                         </>
                       )}
@@ -951,7 +951,7 @@ export default function SupervisorMeetings() {
                         }
                         className="shadow-sm self-start"
                       >
-                        {meeting.status === "scheduled" ? "مجدول" : meeting.status === "completed" ? "مكتمل" : "ملغي"}
+                        {meeting.status === "scheduled" ? t("scheduled") : meeting.status === "completed" ? t("completed") : t("canceled")}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -971,7 +971,7 @@ export default function SupervisorMeetings() {
                                   month: "short",
                                   day: "numeric",
                                 })
-                              : "غير محدد"}
+                              : t("notSpecifiedText")}
                           </p>
                         </div>
                       </div>
@@ -992,7 +992,7 @@ export default function SupervisorMeetings() {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-medium text-muted-foreground">{t("location")}</p>
-                          <p className="text-sm font-semibold truncate">{meeting.location || "غير محدد"}</p>
+                          <p className="text-sm font-semibold truncate">{meeting.location || t("notSpecifiedText")}</p>
                         </div>
                       </div>
                     </div>
@@ -1010,7 +1010,7 @@ export default function SupervisorMeetings() {
                           }}
                         >
                           <Edit2 className="w-4 h-4" />
-                          {language === "ar" ? "تغيير الوقت" : "Reschedule"}
+                          {language === "ar" ? t("rescheduleLabel") : "Reschedule"}
                         </Button>
                         <Button
                           variant="outline"
@@ -1023,7 +1023,7 @@ export default function SupervisorMeetings() {
                           }}
                         >
                           <XCircle className="w-4 h-4" />
-                          {language === "ar" ? "إلغاء الاجتماع" : "Cancel Meeting"}
+                          {language === "ar" ? t("cancelMeetingLabel") : "Cancel Meeting"}
                         </Button>
                       </div>
                     )}
@@ -1039,16 +1039,16 @@ export default function SupervisorMeetings() {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
-            <DialogTitle>{language === "ar" ? "إلغاء الاجتماع" : "Cancel Meeting"}</DialogTitle>
-            <DialogDescription>{language === "ar" ? "يرجى ذكر سبب الإلغاء" : "Please provide a reason for cancellation"}</DialogDescription>
+            <DialogTitle>{language === "ar" ? t("cancelMeetingLabel") : "Cancel Meeting"}</DialogTitle>
+            <DialogDescription>{language === "ar" ? t("provideReasonForCancellation") : "Please provide a reason for cancellation"}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>{language === "ar" ? "سبب الإلغاء *" : "Cancellation Reason *"}</Label>
+              <Label>{language === "ar" ? t("cancellationReasonRequired") : "Cancellation Reason *"}</Label>
               <Textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                placeholder={language === "ar" ? "اكتب سبب الإلغاء هنا..." : "Write the reason here..."}
+                placeholder={language === "ar" ? t("writeCancelReasonHere") : "Write the reason here..."}
                 rows={3}
               />
             </div>
@@ -1062,7 +1062,7 @@ export default function SupervisorMeetings() {
                 className="flex-1 rounded-lg"
                 disabled={isCancelling || !cancelReason.trim()}
               >
-                {isCancelling ? "..." : language === "ar" ? "تأكيد الإلغاء" : "Confirm Cancel"}
+                {isCancelling ? "..." : language === "ar" ? t("confirmCancel") : "Confirm Cancel"}
               </Button>
             </div>
           </div>
@@ -1073,17 +1073,17 @@ export default function SupervisorMeetings() {
       <Dialog open={rescheduleDialogOpen} onOpenChange={setRescheduleDialogOpen}>
         <DialogContent className="max-w-md rounded-xl">
           <DialogHeader>
-            <DialogTitle>{language === "ar" ? "تغيير وقت الاجتماع" : "Reschedule Meeting"}</DialogTitle>
+            <DialogTitle>{language === "ar" ? t("rescheduleMeeting") : "Reschedule Meeting"}</DialogTitle>
             <DialogDescription>{rescheduleMeeting?.title}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{language === "ar" ? "التاريخ الجديد *" : "New Date *"}</Label>
+                <Label>{language === "ar" ? t("newDateRequired") : "New Date *"}</Label>
                 <Input type="date" value={newDate} min={getTodayDate()} onChange={(e) => setNewDate(e.target.value)} className="h-11" />
               </div>
               <div className="space-y-2">
-                <Label>{language === "ar" ? "الوقت الجديد *" : "New Time *"}</Label>
+                <Label>{language === "ar" ? t("newTimeRequired") : "New Time *"}</Label>
                 <Input type="time" min="08:00" max="19:59" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="h-11" />
               </div>
             </div>
@@ -1096,7 +1096,7 @@ export default function SupervisorMeetings() {
                 className="flex-1 rounded-lg"
                 disabled={isRescheduling || !newDate || !newTime}
               >
-                {isRescheduling ? "..." : language === "ar" ? "تأكيد التغيير" : "Confirm"}
+                {isRescheduling ? "..." : language === "ar" ? t("confirmChange") : "Confirm"}
               </Button>
             </div>
           </div>

@@ -598,16 +598,16 @@ export default function ApproveProjects() {
           <div className="flex items-center justify-between">
             <span className="text-muted-foreground">{t("projectOption")}:</span>
             <span className="font-medium">
-            {(project.projectType || project.type) === "system" ? (language === "ar" ? "نظام" : "System") : (project.projectType || project.type) === "research" ? (language === "ar" ? "بحث" : "Research") : (project.projectType || project.type) === "entrepreneurship" ? t("entrepreneurship") : (project.projectType || project.type) === "cybersecurity" ? t("cybersecurity") : (project.projectType || project.type) === "one-course" ? (language === "ar" ? "كورس واحد" : "One Semester") : (project.projectType || project.type) === "two-courses" ? (language === "ar" ? "كورسين" : "Two Semesters") : (project.projectType || project.type) || "—"}
+            {(project.projectType || project.type) === "system" ? (language === "ar" ? t("systemLabel") : "System") : (project.projectType || project.type) === "research" ? (language === "ar" ?  t("researchLabel") : "Research") : (project.projectType || project.type) === "entrepreneurship" ? t("entrepreneurship") : (project.projectType || project.type) === "cybersecurity" ? t("cybersecurity") : (project.projectType || project.type) === "one-course" ? (language === "ar" ? t("oneSemesterLabel") : "One Semester") : (project.projectType || project.type) === "two-courses" ? (language === "ar" ? t("twoSemestersLabel") : "Two Semesters") : (project.projectType || project.type) || "—"}
             </span>
           </div>
 
           {project.duration && (
             <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">{language === "ar" ? "مدة المشروع" : "Duration"}:</span>
+              <span className="text-muted-foreground">{language === "ar" ? t("durationLabel") : "Duration"}:</span>
               <span className="font-medium">
-                {project.duration === "one-course" ? (language === "ar" ? "كورس واحد" : "One Semester")
-                  : project.duration === "two-courses" ? (language === "ar" ? "كورسين" : "Two Semesters")
+                {project.duration === "one-course" ? (language === "ar" ? t("oneSemesterLabel") : "One Semester")
+                  : project.duration === "two-courses" ? (language === "ar" ? t("twoSemestersLabel") : "Two Semesters")
                   : project.duration}
               </span>
             </div>
@@ -874,20 +874,20 @@ export default function ApproveProjects() {
               <div className="p-3 bg-muted/50 rounded-lg">
                 <p className="text-xs text-muted-foreground mb-1">{t("projectOption")}</p>
                 <p className="font-semibold text-sm">{
-                  (selectedProject?.projectType || selectedProject?.type) === "system" ? (language === "ar" ? "نظام" : "System")
-                  : (selectedProject?.projectType || selectedProject?.type) === "research" ? (language === "ar" ? "بحث" : "Research")
+                  (selectedProject?.projectType || selectedProject?.type) === "system" ? (language === "ar" ? t("systemLabel") : "System")
+                  : (selectedProject?.projectType || selectedProject?.type) === "research" ? (language === "ar" ? t("researchLabel") : "Research")
                   : (selectedProject?.projectType || selectedProject?.type) === "entrepreneurship" ? t("entrepreneurship")
                   : (selectedProject?.projectType || selectedProject?.type) === "cybersecurity" ? t("cybersecurity")
-                  : (selectedProject?.projectType || selectedProject?.type) === "one-course" ? (language === "ar" ? "كورس واحد" : "One Semester")
-                  : (selectedProject?.projectType || selectedProject?.type) === "two-courses" ? (language === "ar" ? "كورسين" : "Two Semesters")
+                  : (selectedProject?.projectType || selectedProject?.type) === "one-course" ? (language === "ar" ? t("oneSemesterLabel") : "One Semester")
+                  : (selectedProject?.projectType || selectedProject?.type) === "two-courses" ? (language === "ar" ? t("twoSemestersLabel") : "Two Semesters")
                   : (selectedProject?.projectType || selectedProject?.type) || "—"
                 }</p>
               </div>
               <div className="p-3 bg-muted/50 rounded-lg">
-                <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? "مدة المشروع" : "Duration"}</p>
+                <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? t("durationLabel") : "Duration"}</p>
                 <p className="font-semibold text-sm">{
-                  selectedProject?.duration === "one-course" ? (language === "ar" ? "كورس واحد" : "One Semester")
-                  : selectedProject?.duration === "two-courses" ? (language === "ar" ? "كورسين" : "Two Semesters")
+                  selectedProject?.duration === "one-course" ? (language === "ar" ? t("oneSemesterLabel") : "One Semester")
+                  : selectedProject?.duration === "two-courses" ? (language === "ar" ? t("twoSemestersLabel") : "Two Semesters")
                   : selectedProject?.duration || "—"
                 }</p>
               </div>
@@ -896,28 +896,28 @@ export default function ApproveProjects() {
                   <p className="text-xs text-muted-foreground mb-1">{t("semester")}</p>
                   <p className="font-semibold text-sm">
                     {selectedProject.semester === "fall"
-                      ? (language === "ar" ? "الفصل الأول" : "First Semester")
+                      ? (language === "ar" ? t("firstSemesterLabel") : "First Semester")
                       : selectedProject.semester === "spring"
-                      ? (language === "ar" ? "الفصل الثاني" : "Second Semester")
+                      ? (language === "ar" ? t("secondSemesterLabel") : "Second Semester")
                       : selectedProject.semester}
                   </p>
                 </div>
               )}
               {selectedProject?.program && (
                 <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? "البرنامج" : "Program"}</p>
+                  <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? t("program") : "Program"}</p>
                   <p className="font-semibold text-sm">{selectedProject.program}</p>
                 </div>
               )}
               {selectedProject?.academicYear && (
                 <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? "السنة الأكاديمية" : "Academic Year"}</p>
+                  <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? t("academicYear") : "Academic Year"}</p>
                   <p className="font-semibold text-sm">{selectedProject.academicYear}</p>
                 </div>
               )}
               {selectedProject?.startDate && (
                 <div className="p-3 bg-muted/50 rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? "تاريخ البداية" : "Start Date"}</p>
+                  <p className="text-xs text-muted-foreground mb-1">{language === "ar" ? t("startDateLabe") : "Start Date"}</p>
                   <p className="font-semibold text-sm">
                     {new Date(selectedProject.startDate?.seconds ? selectedProject.startDate.seconds * 1000 : selectedProject.startDate).toLocaleDateString(language === "ar" ? "ar-EG" : "en-US")}
                   </p>
@@ -928,27 +928,27 @@ export default function ApproveProjects() {
             {/* Supervisor */}
             {selectedProject?.supervisorName && (
               <div>
-                <h4 className="font-semibold mb-2 text-sm">{language === "ar" ? "المشرف:" : "Supervisor:"}</h4>
+                <h4 className="font-semibold mb-2 text-sm">{language === "ar" ? t("supervisorLabel") : "Supervisor:"}</h4>
                 <div className="p-3 bg-muted/50 rounded-lg flex flex-wrap gap-4">
                   <div>
-                    <p className="text-xs text-muted-foreground">{language === "ar" ? "الاسم" : "Name"}</p>
+                    <p className="text-xs text-muted-foreground">{language === "ar" ? t("name") : "Name"}</p>
                     <p className="text-sm font-medium">{selectedProject.supervisorName}</p>
                   </div>
                   {selectedProject.supervisorEmail && (
                     <div>
-                      <p className="text-xs text-muted-foreground">{language === "ar" ? "الإيميل" : "Email"}</p>
+                      <p className="text-xs text-muted-foreground">{language === "ar" ? t("emailLabe") : "Email"}</p>
                       <p className="text-sm font-medium">{selectedProject.supervisorEmail}</p>
                     </div>
                   )}
                   {selectedProject.coSupervisorName && (
                     <div>
-                      <p className="text-xs text-muted-foreground">{language === "ar" ? "المشرف المشارك" : "Co-Supervisor"}</p>
+                      <p className="text-xs text-muted-foreground">{language === "ar" ? t("coSupervisorLabel") : "Co-Supervisor"}</p>
                       <p className="text-sm font-medium">{selectedProject.coSupervisorName}</p>
                     </div>
                   )}
                   {selectedProject.coSupervisorEmail && (
                     <div>
-                      <p className="text-xs text-muted-foreground">{language === "ar" ? "إيميل المشرف المشارك" : "Co-Supervisor Email"}</p>
+                      <p className="text-xs text-muted-foreground">{language === "ar" ? t("coSupervisorEmailLabel") : "Co-Supervisor Email"}</p>
                       <p className="text-sm font-medium">{selectedProject.coSupervisorEmail}</p>
                     </div>
                   )}
@@ -958,14 +958,14 @@ export default function ApproveProjects() {
 
             {/* Problem Statement */}
             <div>
-              <h4 className="font-semibold mb-2">{language === "ar" ? "مشكلة البحث:" : "Problem Statement:"}</h4>
+              <h4 className="font-semibold mb-2">{language === "ar" ? t("problemStatementColon") : "Problem Statement:"}</h4>
               <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded-lg whitespace-pre-wrap">{selectedProject?.problemStatement || selectedProject?.description || t("noDescription")}</p>
             </div>
 
             {/* Objectives */}
             {selectedProject?.objectives && (
               <div>
-                <h4 className="font-semibold mb-2">{language === "ar" ? "الأهداف:" : "Objectives:"}</h4>
+                <h4 className="font-semibold mb-2">{language === "ar" ? t("objectivesColon") : "Objectives:"}</h4>
                 {Array.isArray(selectedProject.objectives) ? (
                   <ul className="space-y-1.5 bg-muted/30 p-3 rounded-lg">
                     {selectedProject.objectives.map((obj: string, i: number) => (
@@ -984,7 +984,7 @@ export default function ApproveProjects() {
             {/* Significance */}
             {selectedProject?.significance && (
               <div>
-                <h4 className="font-semibold mb-2">{language === "ar" ? "أهمية المشروع:" : "Significance:"}</h4>
+                <h4 className="font-semibold mb-2">{language === "ar" ? t("significanceColon") : "Significance:"}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded-lg">{selectedProject.significance}</p>
               </div>
             )}
@@ -992,7 +992,7 @@ export default function ApproveProjects() {
             {/* Literature Review */}
             {selectedProject?.literatureReview && (
               <div>
-                <h4 className="font-semibold mb-2">{language === "ar" ? "مراجعة الأدبيات:" : "Literature Review:"}</h4>
+                <h4 className="font-semibold mb-2">{language === "ar" ? t("literatureReviewColon") : "Literature Review:"}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded-lg whitespace-pre-wrap">{selectedProject.literatureReview}</p>
               </div>
             )}
@@ -1000,7 +1000,7 @@ export default function ApproveProjects() {
             {/* References */}
             {selectedProject?.references && (
               <div>
-                <h4 className="font-semibold mb-2">{language === "ar" ? "المراجع:" : "References:"}</h4>
+                <h4 className="font-semibold mb-2">{language === "ar" ? t("referencesColon") : "References:"}</h4>
                 <p className="text-sm text-muted-foreground leading-relaxed bg-muted/30 p-3 rounded-lg whitespace-pre-wrap">{selectedProject.references}</p>
               </div>
             )}
@@ -1008,7 +1008,7 @@ export default function ApproveProjects() {
             {/* Technologies */}
             {(selectedProject?.tools || selectedProject?.technologies) && (
               <div>
-                <h4 className="font-semibold mb-2">{language === "ar" ? "الأدوات والتقنيات:" : "Tools & Technologies:"}</h4>
+                <h4 className="font-semibold mb-2">{language === "ar" ? t("toolsAndTech") : "Tools & Technologies:"}</h4>
                 {Array.isArray(selectedProject.technologies) ? (
                   <div className="flex flex-wrap gap-2">
                     {selectedProject.technologies.map((tech: string, i: number) => (
@@ -1024,12 +1024,12 @@ export default function ApproveProjects() {
             {/* Timeline */}
             {selectedProject?.timeline && (
               <div>
-                <h4 className="font-semibold mb-2">{language === "ar" ? "الجدول الزمني:" : "Timeline:"}</h4>
+                <h4 className="font-semibold mb-2">{language === "ar" ? t("timelineColon") : "Timeline:"}</h4>
                 <div className="overflow-x-auto rounded-lg border">
                   <table className="w-full text-xs border-collapse">
                     <thead>
                       <tr className="bg-muted/50 border-b">
-                        <th className="text-right p-2 font-semibold">{language === "ar" ? "المرحلة" : "Phase"}</th>
+                        <th className="text-right p-2 font-semibold">{language === "ar" ? t("phase") : "Phase"}</th>
                         {["W 1–3","W 4–6","W 7–9","W 10–12","W 13–16","Next Sem","N/A"].map((l) => (
                           <th key={l} className="p-2 text-center font-medium text-muted-foreground whitespace-nowrap">{l}</th>
                         ))}
@@ -1037,13 +1037,13 @@ export default function ApproveProjects() {
                     </thead>
                     <tbody>
                       {[
-                        { key: "requirementCollection", ar: "جمع المتطلبات", en: "Requirements" },
-                        { key: "literatureReview", ar: "مراجعة الأدبيات", en: "Lit. Review" },
-                        { key: "design", ar: "التصميم", en: "Design" },
-                        { key: "implementation", ar: "التنفيذ", en: "Implementation" },
-                        { key: "testingAndResults", ar: "الاختبار", en: "Testing" },
-                        { key: "reportWriting", ar: "كتابة التقرير", en: "Report" },
-                        { key: "presentation", ar: "العرض", en: "Presentation" },
+                        { key: "requirementCollection", ar: t("requirementCollection"), en: "Requirements" },
+                        { key: "literatureReview", ar: t("literatureRevie"), en: "Lit. Review" },
+                        { key: "design", ar: t("design"), en: "Design" },
+                        { key: "implementation", ar: t("implementation"), en: "Implementation" },
+                        { key: "testingAndResults", ar: t("testing"), en: "Testing" },
+                        { key: "reportWriting", ar: t("reportWriting"), en: "Report" },
+                        { key: "presentation", ar: t("presentatio"), en: "Presentation" },
                       ].map((phase) => (
                         <tr key={phase.key} className="border-b hover:bg-muted/20">
                           <td className="p-2 font-medium">{language === "ar" ? phase.ar : phase.en}</td>
@@ -1069,14 +1069,14 @@ export default function ApproveProjects() {
                   {selectedProject.plagiarismDeclaration && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {language === "ar" ? "تم الإقرار بأن هذا العمل أصلي وخالٍ من الانتحال" : "Declared that this work is original and free from plagiarism"}
+                  {language === "ar" ? t("plagiarismDeclared") : "Declared that this work is original and free from plagiarism"}
                 </p>
               </div>
             )}
 
             {/* Team Members */}
             <div>
-              <h4 className="font-semibold mb-3">{language === "ar" ? "أعضاء الفريق:" : "Team Members:"}</h4>
+              <h4 className="font-semibold mb-3">{language === "ar" ? t("teamMembersColon") : "Team Members:"}</h4>
               {selectedProject?.teamMembers && selectedProject.teamMembers.length > 0 ? (
                 <div className="space-y-2">
                   {selectedProject.teamMembers.map((member: any, index: number) => (
@@ -1089,15 +1089,15 @@ export default function ApproveProjects() {
                         <div className="flex items-center gap-1.5 shrink-0">
                           {member.role === "leader" && <Badge variant="default" className="text-xs">{t("leader")}</Badge>}
                           <Badge variant={member.approved ? "default" : "secondary"} className="text-xs">
-                            {member.approved ? (language === "ar" ? "وافق" : "Approved") : (language === "ar" ? "لم يوافق بعد" : "Pending")}
+                            {member.approved ? (language === "ar" ? t("memberApproved") : "Approved") : (language === "ar" ? "لم يوافق بعد" : "Pending")}
                           </Badge>
                         </div>
                       </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs text-muted-foreground">
-                        {member.studentId && <span>{language === "ar" ? "الرقم:" : "ID:"} {member.studentId}</span>}
+                        {member.studentId && <span>{language === "ar" ? t("idColon") : "ID:"} {member.studentId}</span>}
                         {member.gpa && <span>GPA: {member.gpa}</span>}
-                        {member.phone && <span>{language === "ar" ? "الجوال:" : "Tel:"} {member.phone}</span>}
-                        {member.department && <span>{language === "ar" ? "القسم:" : "Dept:"} {member.department}</span>}
+                        {member.phone && <span>{language === "ar" ? t("telColon") : "Tel:"} {member.phone}</span>}
+                        {member.department && <span>{language === "ar" ? t("deptColon") : "Dept:"} {member.department}</span>}
                       </div>
                     </div>
                   ))}
@@ -1157,7 +1157,7 @@ export default function ApproveProjects() {
               {/* ✅ Fix: Show full description */}
               {(selectedProject?.problemStatement || selectedProject?.description) && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? "الوصف:" : "Description:"}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? t("descriptionColo") : "Description:"}</p>
                   <p className="text-sm leading-relaxed">{selectedProject?.problemStatement || selectedProject?.description}</p>
                 </div>
               )}
@@ -1165,7 +1165,7 @@ export default function ApproveProjects() {
               {/* ✅ Show objectives */}
               {selectedProject?.objectives && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? "الأهداف:" : "Objectives:"}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? t("objectivesColon") : "Objectives:"}</p>
                   <p className="text-sm leading-relaxed">{selectedProject.objectives}</p>
                 </div>
               )}
@@ -1173,7 +1173,7 @@ export default function ApproveProjects() {
               {/* ✅ Show expected outcomes */}
               {selectedProject?.expectedOutcomes && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? "النتائج المتوقعة:" : "Expected Outcomes:"}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? t("expectedOutcomesColon") : "Expected Outcomes:"}</p>
                   <p className="text-sm leading-relaxed">{selectedProject.expectedOutcomes}</p>
                 </div>
               )}
@@ -1181,7 +1181,7 @@ export default function ApproveProjects() {
               {/* ✅ Show tools */}
               {selectedProject?.tools && (
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? "الأدوات والتقنيات:" : "Tools & Technologies:"}</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-1">{language === "ar" ? t("toolsAndTech") : "Tools & Technologies:"}</p>
                   <p className="text-sm leading-relaxed">{selectedProject.tools}</p>
                 </div>
               )}
